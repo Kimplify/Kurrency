@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CurrencyStateTest {
@@ -14,7 +15,9 @@ class CurrencyStateTest {
     fun testCurrencyStateCreation() {
         val state = CurrencyState("USD", "100.00")
 
-        assertEquals("USD", state.currency.code)
+        assertEquals("USD", state.currencyCode)
+        assertNotNull(state.currency)
+        assertEquals("USD", state.currency?.code)
         assertEquals("100.00", state.amount)
     }
 
@@ -22,7 +25,9 @@ class CurrencyStateTest {
     fun testCurrencyStateDefaultAmount() {
         val state = CurrencyState("USD")
 
-        assertEquals("USD", state.currency.code)
+        assertEquals("USD", state.currencyCode)
+        assertNotNull(state.currency)
+        assertEquals("USD", state.currency?.code)
         assertEquals("0.00", state.amount)
     }
 
@@ -69,7 +74,9 @@ class CurrencyStateTest {
 
         state.updateCurrency("EUR")
 
-        assertEquals("EUR", state.currency.code)
+        assertEquals("EUR", state.currencyCode)
+        assertNotNull(state.currency)
+        assertEquals("EUR", state.currency?.code)
         assertNotEquals(originalCurrency, state.currency)
         assertEquals("100.00", state.amount)
     }
@@ -80,7 +87,7 @@ class CurrencyStateTest {
 
         state.updateAmount("250.50")
 
-        assertEquals("USD", state.currency.code)
+        assertEquals("USD", state.currencyCode)
         assertEquals("250.50", state.amount)
     }
 
@@ -90,7 +97,9 @@ class CurrencyStateTest {
 
         state.updateCurrencyAndAmount("EUR", "500.00")
 
-        assertEquals("EUR", state.currency.code)
+        assertEquals("EUR", state.currencyCode)
+        assertNotNull(state.currency)
+        assertEquals("EUR", state.currency?.code)
         assertEquals("500.00", state.amount)
     }
 
@@ -137,9 +146,13 @@ class CurrencyStateTest {
     fun testStateWithInvalidCurrency() {
         val state = CurrencyState("INVALID", "100.00")
         val formatted = state.formattedAmount
+        val result = state.formattedAmountResult
 
-        assertEquals("USD", state.currency.code)
-        assertEquals("100.00", formatted)
+        assertEquals("INVALID", state.currencyCode)
+        assertNull(state.currency)
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is KurrencyError.InvalidCurrencyCode)
+        assertEquals("", formatted)
     }
 
     @Test
@@ -171,7 +184,7 @@ class CurrencyStateTest {
         assertEquals("300.00", state.amount)
 
         state.updateCurrency("EUR")
-        assertEquals("EUR", state.currency.code)
+        assertEquals("EUR", state.currencyCode)
     }
 
     @Test
@@ -197,6 +210,7 @@ class CurrencyStateTest {
         currencies.forEach { code ->
             val state = CurrencyState(code, "100.00")
             val formatted = state.formattedAmount
+            assertTrue(state.currencyResult.isSuccess, "Failed for currency: $code")
             assertNotNull(formatted, "Failed for currency: $code")
         }
     }
@@ -206,7 +220,7 @@ class CurrencyStateTest {
         val state1 = CurrencyState("USD", "100.00")
         val state2 = CurrencyState("USD", "100.00")
 
-        assertEquals(state1.currency.code, state2.currency.code)
+        assertEquals(state1.currencyCode, state2.currencyCode)
         assertEquals(state1.amount, state2.amount)
     }
 }

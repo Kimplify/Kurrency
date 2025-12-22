@@ -15,27 +15,39 @@ class CurrencyState(
     initialCurrencyCode: String,
     initialAmount: String = "0.00"
 ) {
-    var currency by mutableStateOf(Kurrency.fromCode(initialCurrencyCode).getOrElse { Kurrency.USD })
+    var currencyCode by mutableStateOf(initialCurrencyCode)
         private set
 
     var amount by mutableStateOf(initialAmount)
         private set
 
+    val currencyResult: Result<Kurrency>
+        get() = Kurrency.fromCode(currencyCode)
+
+    val currency: Kurrency?
+        get() = currencyResult.getOrNull()
+
     val formattedAmountResult: Result<String>
-        get() = currency.formatAmount(amount)
+        get() = currencyResult.fold(
+            onSuccess = { it.formatAmount(amount) },
+            onFailure = { Result.failure(it) }
+        )
 
     val formattedAmountIsoResult: Result<String>
-        get() = currency.formatAmount(amount, CurrencyStyle.Iso)
+        get() = currencyResult.fold(
+            onSuccess = { it.formatAmount(amount, CurrencyStyle.Iso) },
+            onFailure = { Result.failure(it) }
+        )
 
     val formattedAmount: String
-        get() = formattedAmountResult.getOrDefault(amount)
+        get() = formattedAmountResult.getOrDefault("")
 
     val formattedAmountIso: String
-        get() = formattedAmountIsoResult.getOrDefault(amount)
+        get() = formattedAmountIsoResult.getOrDefault("")
 
     fun updateCurrency(currencyCode: String) {
         KurrencyLog.d { "Updating currency: $currencyCode" }
-        currency = Kurrency.fromCode(currencyCode).getOrElse { Kurrency.USD }
+        this.currencyCode = currencyCode
     }
 
     fun updateAmount(newAmount: String) {
@@ -45,7 +57,7 @@ class CurrencyState(
 
     fun updateCurrencyAndAmount(currencyCode: String, newAmount: String) {
         KurrencyLog.d { "Updating currency and amount: currency=$currencyCode, amount=$newAmount" }
-        currency = Kurrency.fromCode(currencyCode).getOrElse { Kurrency.USD }
+        this.currencyCode = currencyCode
         amount = newAmount
     }
 }
@@ -56,12 +68,15 @@ class FormattedAmountDelegate(
     private val style: CurrencyStyle = CurrencyStyle.Standard
 ) : ReadOnlyProperty<Any?, String> {
     override fun getValue(thisRef: Any?, property: KProperty<*>): String {
-        return state.currency.formatAmount(state.amount, style).getOrDefault("")
+        return state.currencyResult.fold(
+            onSuccess = { it.formatAmount(state.amount, style).getOrDefault("") },
+            onFailure = { "" }
+        )
     }
 }
 
 @ExperimentalKurrency
-fun CurrencyState.formattedAmount(style: CurrencyStyle = CurrencyStyle.Standard) = 
+fun CurrencyState.formattedAmount(style: CurrencyStyle = CurrencyStyle.Standard) =
     FormattedAmountDelegate(this, style)
 
 @ExperimentalKurrency
