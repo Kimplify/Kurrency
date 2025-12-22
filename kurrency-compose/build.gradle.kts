@@ -74,7 +74,7 @@ kotlin {
 
 mavenPublishing {
     publishToMavenCentral()
-//    signAllPublications()
+    signAllPublications()
     coordinates("org.kimplify", "kurrency-compose", libs.versions.appVersionName.get())
 
     pom {
