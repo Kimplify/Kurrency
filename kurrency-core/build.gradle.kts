@@ -14,7 +14,7 @@ plugins {
 
 kotlin {
     androidLibrary {
-        namespace = "org.kimplify.kurrency"
+        namespace = "org.kimplify.kurrency.core"
         compileSdk = libs.versions.compileSdk.get().toInt()
         minSdk = libs.versions.minSdk.get().toInt()
 
