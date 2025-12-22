@@ -76,9 +76,9 @@ kotlin {
         }
 
         androidInstrumentedTest.dependencies {
-            implementation("androidx.test.ext:junit:1.3.0")
-            implementation("androidx.test:runner:1.7.0")
-            implementation("androidx.test:rules:1.7.0")
+            implementation(libs.androidx.testExt.junit)
+            implementation(libs.androidx.runner)
+            implementation(libs.androidx.rules)
             implementation(libs.kotlin.test)
         }
 
