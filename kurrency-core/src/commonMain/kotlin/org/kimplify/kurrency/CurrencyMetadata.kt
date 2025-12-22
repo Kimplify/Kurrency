@@ -1,6 +1,5 @@
 package org.kimplify.kurrency
 
-import org.kimplify.cedar.logging.Cedar
 
 enum class CurrencyMetadata(
     val code: String,
@@ -63,34 +62,33 @@ enum class CurrencyMetadata(
 
     companion object {
         private val codeMap by lazy {
-            Cedar.tag("Kurrency").d("Initializing CurrencyMetadata map with ${entries.size} currencies")
+            KurrencyLog.d { "Initializing CurrencyMetadata map with ${entries.size} currencies" }
             entries.associateBy { it.code.uppercase() }
         }
 
         fun parse(code: String): Result<CurrencyMetadata> {
             if (code.isBlank()) {
                 val error = KurrencyError.InvalidCurrencyCode(code)
-                Cedar.tag("Kurrency").w(error.errorMessage)
+                KurrencyLog.w { error.errorMessage }
                 return Result.failure(error)
             }
 
             val normalizedCode = code.uppercase().trim()
-            Cedar.tag("Kurrency").d("Parsing currency code: $normalizedCode")
+            KurrencyLog.d { "Parsing currency code: $normalizedCode" }
 
             return codeMap[normalizedCode]?.let { metadata ->
-                Cedar.tag("Kurrency").d("Successfully parsed currency: ${metadata.displayName} ${metadata.flag}")
+                KurrencyLog.d { "Successfully parsed currency: ${metadata.displayName} ${metadata.flag}" }
                 Result.success(metadata)
             } ?: run {
                 val error = KurrencyError.InvalidCurrencyCode(code)
-                Cedar.tag("Kurrency").w(error.errorMessage)
+                KurrencyLog.w { error.errorMessage }
                 Result.failure(error)
             }
         }
 
         fun getAll(): List<CurrencyMetadata> {
-            Cedar.tag("Kurrency").d("Retrieving all ${entries.size} currencies")
+            KurrencyLog.d { "Retrieving all ${entries.size} currencies" }
             return entries
         }
     }
 }
-

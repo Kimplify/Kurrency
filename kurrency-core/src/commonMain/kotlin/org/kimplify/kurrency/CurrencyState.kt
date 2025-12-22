@@ -6,7 +6,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import org.kimplify.cedar.logging.Cedar
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
@@ -35,17 +34,17 @@ class CurrencyState(
         get() = formattedAmountIsoResult.getOrDefault("")
 
     fun updateCurrency(currencyCode: String) {
-        Cedar.tag("Kurrency").d("Updating currency: $currencyCode")
+        KurrencyLog.d { "Updating currency: $currencyCode" }
         currency = Kurrency.fromCode(currencyCode).getOrElse { Kurrency.USD }
     }
 
     fun updateAmount(newAmount: String) {
-        Cedar.tag("Kurrency").d("Updating amount: $newAmount")
+        KurrencyLog.d { "Updating amount: $newAmount" }
         amount = newAmount
     }
 
     fun updateCurrencyAndAmount(currencyCode: String, newAmount: String) {
-        Cedar.tag("Kurrency").d("Updating currency and amount: currency=$currencyCode, amount=$newAmount")
+        KurrencyLog.d { "Updating currency and amount: currency=$currencyCode, amount=$newAmount" }
         currency = Kurrency.fromCode(currencyCode).getOrElse { Kurrency.USD }
         amount = newAmount
     }
