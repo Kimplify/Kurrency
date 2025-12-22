@@ -28,10 +28,10 @@ class CurrencyState(
         get() = currency.formatAmount(amount, CurrencyStyle.Iso)
 
     val formattedAmount: String
-        get() = formattedAmountResult.getOrDefault("")
+        get() = formattedAmountResult.getOrDefault(amount)
 
     val formattedAmountIso: String
-        get() = formattedAmountIsoResult.getOrDefault("")
+        get() = formattedAmountIsoResult.getOrDefault(amount)
 
     fun updateCurrency(currencyCode: String) {
         KurrencyLog.d { "Updating currency: $currencyCode" }
