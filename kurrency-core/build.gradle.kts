@@ -1,18 +1,31 @@
 @file:OptIn(ExperimentalWasmDsl::class)
 
+import com.android.build.api.dsl.androidLibrary
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
+    alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.androidLibrary)
     alias(libs.plugins.maven.publish)
 }
 
 kotlin {
-    androidTarget {
+    androidLibrary {
+        namespace = "org.kimplify.kurrency"
+        compileSdk = libs.versions.compileSdk.get().toInt()
+        minSdk = libs.versions.minSdk.get().toInt()
+
+        withDeviceTest {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+            execution = "ANDROIDX_TEST_ORCHESTRATOR"
+        }
+        withHostTest {
+            isIncludeAndroidResources = true
+        }
+
         compilations.configureEach {
             compileTaskProvider.get().compilerOptions {
                 jvmTarget.set(JvmTarget.valueOf(libs.versions.jvmVersion.get()))
@@ -40,17 +53,14 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "Kurrency"
             isStatic = true
-            export(libs.cedar.logging)
         }
     }
 
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation(compose.runtime)
-                implementation(compose.foundation)
-                api(libs.cedar.logging)
-            }
+        commonMain.dependencies {
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(libs.cedar.logging)
         }
 
         val commonTest by getting {
@@ -61,59 +71,18 @@ kotlin {
 
         val androidMain by getting {
             dependencies {
-                implementation("androidx.core:core-ktx:1.12.0")
+                implementation(libs.androidx.core.ktx)
             }
         }
 
-        val androidInstrumentedTest by getting {
-            dependencies {
-                implementation("androidx.test.ext:junit:1.2.1")
-                implementation("androidx.test:runner:1.6.2")
-                implementation("androidx.test:rules:1.6.1")
-                implementation(libs.kotlin.test)
-            }
+        androidInstrumentedTest.dependencies {
+            implementation("androidx.test.ext:junit:1.3.0")
+            implementation("androidx.test:runner:1.7.0")
+            implementation("androidx.test:rules:1.7.0")
+            implementation(libs.kotlin.test)
         }
 
-        val jvmMain by getting
-
-        val wasmJsMain by getting
-        val jsMain by getting
-
-        val webMain by creating {
-            dependsOn(commonMain)
-            wasmJsMain.dependsOn(this)
-            jsMain.dependsOn(this)
-        }
-
-        val iosX64Main by getting
-        val iosArm64Main by getting
-        val iosSimulatorArm64Main by getting
-
-        val iosMain by creating {
-            dependsOn(commonMain)
-            iosX64Main.dependsOn(this)
-            iosArm64Main.dependsOn(this)
-            iosSimulatorArm64Main.dependsOn(this)
-        }
-    }
-}
-
-android {
-    namespace = "org.kimplify.kurrency"
-    compileSdk = 36
-
-    defaultConfig {
-        minSdk = 24
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    testOptions {
-        unitTests.isIncludeAndroidResources = false
+        iosMain.dependencies {}
     }
 }
 
@@ -121,12 +90,13 @@ android {
 //https://www.jetbrains.com/help/kotlin-multiplatform-dev/multiplatform-publish-libraries.html
 mavenPublishing {
     publishToMavenCentral()
-    signAllPublications()
+//    signAllPublications()
     coordinates("org.kimplify", "kurrency-core", libs.versions.appVersionName.get())
 
     pom {
         name = "Kurrency"
-        description = "A Kotlin Multiplatform library for currency formatting and handling across Android, iOS, JVM, and Web platforms"
+        description =
+            "A Kotlin Multiplatform library for currency formatting and handling across Android, iOS, JVM, and Web platforms"
         url = "https://github.com/Kimplify/Kurrency"
 
         licenses {
