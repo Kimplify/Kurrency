@@ -1,6 +1,5 @@
 package org.kimplify.kurrency
 
-import org.kimplify.cedar.logging.Cedar
 import org.kimplify.kurrency.extensions.replaceCommaWithDot
 import java.text.NumberFormat
 import java.util.Currency
@@ -18,7 +17,7 @@ actual class CurrencyFormatterImpl actual constructor(
             requireNotNull(currency) { "Currency instance is null for code: $currencyCode" }
             currency.defaultFractionDigits
         }.getOrElse { throwable ->
-            Cedar.tag("Kurrency").w("Failed to get fraction digits for $currencyCode: ${throwable.message}")
+            KurrencyLog.w { "Failed to get fraction digits for $currencyCode: ${throwable.message}" }
             default
         }
     }
@@ -62,7 +61,7 @@ actual class CurrencyFormatterImpl actual constructor(
                 numberFormat.format(value) ?: ""
             }
         }.getOrElse { throwable ->
-            Cedar.tag("Kurrency").w("Formatting failed for $currencyCode with amount $amount: ${throwable.message}")
+            KurrencyLog.w { "Formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
             amount
         }
     }

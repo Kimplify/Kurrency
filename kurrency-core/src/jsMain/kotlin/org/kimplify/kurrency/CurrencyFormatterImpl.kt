@@ -1,6 +1,5 @@
 package org.kimplify.kurrency
 
-import org.kimplify.cedar.logging.Cedar
 import org.kimplify.kurrency.extensions.replaceCommaWithDot
 
 @JsName("Intl")
@@ -78,7 +77,7 @@ actual class CurrencyFormatterImpl actual constructor(
             val fractionDigits = jsGetMaxFractionDigits(upperCode, locale)
             if (fractionDigits >= 0) fractionDigits else default
         }.getOrElse { throwable ->
-            Cedar.tag("Kurrency").w("Failed to get fraction digits for $currencyCode: ${throwable.message}")
+            KurrencyLog.w { "Failed to get fraction digits for $currencyCode: ${throwable.message}" }
             default
         }
     }
@@ -95,7 +94,7 @@ actual class CurrencyFormatterImpl actual constructor(
             require(doubleValue.isFinite()) { "Amount must be a finite number" }
             jsFormatSymbol(normalizedAmount, currencyCode, locale)
         }.getOrElse { throwable ->
-            Cedar.tag("Kurrency").w("Formatting failed for $currencyCode with amount $amount: ${throwable.message}")
+            KurrencyLog.w { "Formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
             amount
         }
     }
@@ -112,7 +111,7 @@ actual class CurrencyFormatterImpl actual constructor(
             require(doubleValue.isFinite()) { "Amount must be a finite number" }
             jsFormatIso(normalizedAmount, currencyCode, locale)
         }.getOrElse { throwable ->
-            Cedar.tag("Kurrency").w("Formatting failed for $currencyCode with amount $amount: ${throwable.message}")
+            KurrencyLog.w { "Formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
             amount
         }
     }

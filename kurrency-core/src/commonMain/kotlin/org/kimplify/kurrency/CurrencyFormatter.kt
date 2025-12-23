@@ -1,6 +1,5 @@
 package org.kimplify.kurrency
 
-import org.kimplify.cedar.logging.Cedar
 import org.kimplify.kurrency.extensions.replaceCommaWithDot
 
 expect class CurrencyFormatterImpl(kurrencyLocale: KurrencyLocale = KurrencyLocale.systemLocale()) : CurrencyFormat {
@@ -28,7 +27,7 @@ expect fun isValidCurrency(currencyCode: String): Boolean
 class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.systemLocale()) : CurrencyFormat {
 
     private val impl: CurrencyFormat by lazy {
-        Cedar.tag("Kurrency").d("Initializing CurrencyFormatter with locale: ${locale.languageTag}")
+        KurrencyLog.d { "Initializing CurrencyFormatter with locale: ${locale.languageTag}" }
         CurrencyFormatterImpl(locale)
     }
 
@@ -74,28 +73,28 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
     ): Result<String> {
         if (!isValidCurrencyCode(currencyCode)) {
             val error = KurrencyError.InvalidCurrencyCode(currencyCode)
-            Cedar.tag("Kurrency").w(error.errorMessage)
+            KurrencyLog.w { error.errorMessage }
             return Result.failure(error)
         }
 
         if (!isValidAmount(amount)) {
             val error = KurrencyError.InvalidAmount(amount)
-            Cedar.tag("Kurrency").w(error.errorMessage)
+            KurrencyLog.w { error.errorMessage }
             return Result.failure(error)
         }
 
-        Cedar.tag("Kurrency").d("Formatting: amount=$amount, currency=$currencyCode")
+        KurrencyLog.d { "Formatting: amount=$amount, currency=$currencyCode" }
         return format(amount)
             .onFailure { throwable ->
                 val error = KurrencyError.FormattingFailure(currencyCode, amount, throwable)
-                Cedar.tag("Kurrency").e(throwable, error.errorMessage)
+                KurrencyLog.e(throwable) { error.errorMessage }
             }
     }
 
     companion object Companion {
         private const val DEFAULT_FRACTION_DIGITS = 2
         private val defaultFormatter: CurrencyFormat by lazy {
-            Cedar.tag("Kurrency").d("Initializing default CurrencyFormatter")
+            KurrencyLog.d { "Initializing default CurrencyFormatter" }
             CurrencyFormatterImpl()
         }
 
@@ -113,13 +112,13 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
 
             return runCatching {
                 val normalizedCode = kurrency.code.uppercase()
-                Cedar.tag("Kurrency").d("Getting fraction digits for: $normalizedCode")
+                KurrencyLog.d { "Getting fraction digits for: $normalizedCode" }
                 defaultFormatter.getFractionDigitsOrDefault(normalizedCode, DEFAULT_FRACTION_DIGITS)
             }.fold(
                 onSuccess = { Result.success(it) },
                 onFailure = { throwable ->
                     val error = KurrencyError.FractionDigitsFailure(currencyCode, throwable)
-                    Cedar.tag("Kurrency").e(throwable, error.errorMessage)
+                    KurrencyLog.e(throwable) { error.errorMessage }
                     Result.failure(error)
                 }
             )
