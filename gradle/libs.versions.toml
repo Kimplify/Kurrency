@@ -26,6 +26,7 @@ core = "1.7.0"
 maven-publish = "0.35.0"
 kotlinx-datetime = "0.7.1"
 cedar-logging = "0.2.2"
+deci = "0.1.0"
 
 [libraries]
 androidx-rules = { module = "androidx.test:rules", version.ref = "runner" }
@@ -48,6 +49,7 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinx-datetime" }
 cedar-logging = { group = "org.kimplify", name = "cedar-logging", version.ref = "cedar-logging" }
+deci = { group = "org.kimplify", name = "deci", version.ref = "deci" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
