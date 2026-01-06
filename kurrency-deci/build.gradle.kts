@@ -69,7 +69,7 @@ mavenPublishing {
     pom {
         name = "Kurrency Deci"
         description = "Deci decimal arithmetic extensions for Kurrency currency formatting library"
-        url = "https://github.com/Kimplify/Kurrency"
+        url = "https://github.com/ChiliNoodles/Kurrency"
 
         licenses {
             license {
@@ -93,7 +93,7 @@ mavenPublishing {
         }
 
         scm {
-            url = "https://github.com/Kimplify/Kurrency"
+            url = "https://github.com/ChiliNoodles/Kurrency"
         }
     }
 }

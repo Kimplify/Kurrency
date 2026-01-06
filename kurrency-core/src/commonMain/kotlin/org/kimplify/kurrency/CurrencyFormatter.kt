@@ -23,6 +23,29 @@ expect fun isValidCurrency(currencyCode: String): Boolean
  * ```
  * CurrencyFormatter.getFractionDigits("USD") // Returns 2
  * ```
+ *
+ * ## Thread Safety
+ *
+ * CurrencyFormatter instances are thread-safe for concurrent read operations after initialization.
+ * The underlying platform formatter is lazily initialized on first use.
+ *
+ * ### Safe Usage Patterns
+ *
+ * **Shared formatter (recommended):**
+ * ```
+ * val sharedFormatter = CurrencyFormatter(KurrencyLocale.US)
+ *
+ * launch { sharedFormatter.formatCurrencyStyleResult("100", "USD") }
+ * launch { sharedFormatter.formatCurrencyStyleResult("200", "EUR") }
+ * ```
+ *
+ * **Per-thread formatters:**
+ * ```
+ * launch { CurrencyFormatter(KurrencyLocale.US).formatCurrencyStyleResult("100", "USD") }
+ * ```
+ *
+ * Both patterns are safe. Formatter instances use platform-specific implementations that are
+ * inherently thread-safe (ICU on Android, NSNumberFormatter on iOS, NumberFormat on JVM).
  */
 class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.systemLocale()) : CurrencyFormat {
 

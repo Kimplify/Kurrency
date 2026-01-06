@@ -47,6 +47,7 @@ actual class CurrencyFormatterImpl actual constructor(kurrencyLocale: KurrencyLo
             if (normalized.isEmpty()) return amount
 
             val value = BigDecimal(normalized)
+            require(value.toDouble().isFinite()) { "Amount must be a finite number" }
 
             val numberFormat = NumberFormat.getInstance(platformLocale, style).apply {
                 this.currency = currency
