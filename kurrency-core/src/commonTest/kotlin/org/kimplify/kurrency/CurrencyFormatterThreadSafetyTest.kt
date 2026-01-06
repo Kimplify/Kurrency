@@ -1,9 +1,12 @@
 package org.kimplify.kurrency
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.internal.SynchronizedObject
+import kotlinx.coroutines.internal.synchronized
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -11,7 +14,7 @@ import kotlin.test.assertTrue
 class CurrencyFormatterThreadSafetyTest {
 
     @Test
-    fun formatCurrencyStyle_concurrentAccess_producesConsistentResults() = runBlocking {
+    fun formatCurrencyStyle_concurrentAccess_producesConsistentResults() = runTest {
         val formatter = CurrencyFormatter(KurrencyLocale.US)
         val iterations = 100
 
@@ -28,7 +31,7 @@ class CurrencyFormatterThreadSafetyTest {
     }
 
     @Test
-    fun formatCurrencyStyle_multipleFormattersCreatedConcurrently_allWorkCorrectly() = runBlocking {
+    fun formatCurrencyStyle_multipleFormattersCreatedConcurrently_allWorkCorrectly() = runTest {
         val iterations = 50
 
         val results = (1..iterations).map {
@@ -45,7 +48,7 @@ class CurrencyFormatterThreadSafetyTest {
     }
 
     @Test
-    fun formatCurrencyStyle_concurrentAccessWithDifferentCurrencies_producesCorrectResults() = runBlocking {
+    fun formatCurrencyStyle_concurrentAccessWithDifferentCurrencies_producesCorrectResults() = runTest {
         val formatter = CurrencyFormatter(KurrencyLocale.US)
         val currencies = listOf("USD", "EUR", "GBP", "JPY", "CAD")
 
@@ -63,7 +66,7 @@ class CurrencyFormatterThreadSafetyTest {
     }
 
     @Test
-    fun getFractionDigits_concurrentAccess_producesConsistentResults() = runBlocking {
+    fun getFractionDigits_concurrentAccess_producesConsistentResults() = runTest {
         val formatter = CurrencyFormatter(KurrencyLocale.US)
         val iterations = 100
 
@@ -79,7 +82,7 @@ class CurrencyFormatterThreadSafetyTest {
     }
 
     @Test
-    fun formatCurrencyStyle_concurrentAccessWithMultipleLocales_producesCorrectResults() = runBlocking {
+    fun formatCurrencyStyle_concurrentAccessWithMultipleLocales_producesCorrectResults() = runTest {
         val locales = listOf(
             KurrencyLocale.US,
             KurrencyLocale.GERMANY,
@@ -103,7 +106,7 @@ class CurrencyFormatterThreadSafetyTest {
     }
 
     @Test
-    fun formatIsoCurrencyStyle_concurrentAccess_producesConsistentResults() = runBlocking {
+    fun formatIsoCurrencyStyle_concurrentAccess_producesConsistentResults() = runTest {
         val formatter = CurrencyFormatter(KurrencyLocale.US)
         val iterations = 100
 
@@ -122,7 +125,7 @@ class CurrencyFormatterThreadSafetyTest {
     }
 
     @Test
-    fun currencyFromCode_concurrentAccess_producesConsistentResults() = runBlocking {
+    fun currencyFromCode_concurrentAccess_producesConsistentResults() = runTest {
         val iterations = 100
 
         val results = (1..iterations).map {
@@ -138,15 +141,17 @@ class CurrencyFormatterThreadSafetyTest {
         }
     }
 
+    @OptIn(InternalCoroutinesApi::class)
     @Test
-    fun formatCurrencyStyle_mixedReadWriteOperations_threadsafe() = runBlocking {
+    fun formatCurrencyStyle_mixedReadWriteOperations_threadsafe() = runTest {
         val formatters = mutableListOf<CurrencyFormatter>()
+        val lock = SynchronizedObject()
         val iterations = 50
 
         val writeJobs = (1..iterations).map {
             async(Dispatchers.Default) {
                 val formatter = CurrencyFormatter(KurrencyLocale.US)
-                synchronized(formatters) {
+                synchronized(lock) {
                     formatters.add(formatter)
                 }
             }
@@ -154,7 +159,7 @@ class CurrencyFormatterThreadSafetyTest {
 
         val readJobs = (1..iterations).map {
             async(Dispatchers.Default) {
-                val formatter = synchronized(formatters) {
+                val formatter = synchronized(lock) {
                     formatters.randomOrNull()
                 }
                 formatter?.formatCurrencyStyleResult("100.00", "USD")
@@ -168,7 +173,7 @@ class CurrencyFormatterThreadSafetyTest {
     }
 
     @Test
-    fun formatCurrencyStyle_heavyConcurrentLoad_handlesGracefully() = runBlocking {
+    fun formatCurrencyStyle_heavyConcurrentLoad_handlesGracefully() = runTest {
         val formatter = CurrencyFormatter(KurrencyLocale.US)
         val threadCount = 100
         val operationsPerThread = 10
@@ -189,7 +194,7 @@ class CurrencyFormatterThreadSafetyTest {
     }
 
     @Test
-    fun isValidCurrency_concurrentAccess_producesConsistentResults() = runBlocking {
+    fun isValidCurrency_concurrentAccess_producesConsistentResults() = runTest {
         val iterations = 100
 
         val results = (1..iterations).map {
@@ -204,7 +209,7 @@ class CurrencyFormatterThreadSafetyTest {
     }
 
     @Test
-    fun formatCurrencyStyle_sameFormatterMultipleThreads_noDataCorruption() = runBlocking {
+    fun formatCurrencyStyle_sameFormatterMultipleThreads_noDataCorruption() = runTest {
         val formatter = CurrencyFormatter(KurrencyLocale.US)
         val testData = mapOf(
             "1000.00" to "$1,000.00",
