@@ -69,13 +69,12 @@ class CurrencyFormatterThreadSafetyTest {
 
         val results = (1..iterations).map {
             async(Dispatchers.Default) {
-                formatter.getFractionDigits("USD")
+                formatter.getFractionDigitsOrDefault("USD")
             }
         }.awaitAll()
 
         results.forEach { result ->
-            assertTrue(result.isSuccess)
-            assertEquals(2, result.getOrNull())
+            assertEquals(2, result)
         }
     }
 
