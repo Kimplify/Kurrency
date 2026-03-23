@@ -10,11 +10,26 @@ import platform.Foundation.NSNumberFormatterStyle
 import platform.Foundation.commonISOCurrencyCodes
 import platform.Foundation.currentLocale
 
+/**
+ * iOS currency formatter implementation.
+ *
+ * On iOS, the locale provided via [kurrencyLocale] is **not** used for formatting output.
+ * Instead, [formattingLocale] always returns [NSLocale.currentLocale], which reflects the
+ * user's actual formatting preferences from Settings > General > Language & Region.
+ *
+ * This is intentional: iOS separates language/region locale from formatting preferences.
+ * Users can customize decimal separators, grouping separators, and currency symbol placement
+ * independently of their chosen language. Using `NSLocale.currentLocale` respects these
+ * customizations, whereas constructing an `NSLocale` from a language tag would only use
+ * the locale's defaults and ignore user overrides.
+ *
+ * See also: [KurrencyLocale] class-level documentation for cross-platform locale behavior.
+ */
 actual class CurrencyFormatterImpl actual constructor(private val kurrencyLocale: KurrencyLocale) : CurrencyFormat {
 
+    /** Uses the system's current locale to respect user formatting preferences (see class KDoc). */
     private val formattingLocale: NSLocale
         get() = NSLocale.currentLocale
-
 
     actual override fun getFractionDigitsOrDefault(currencyCode: String, default: Int): Int {
         return runCatching {
@@ -57,7 +72,13 @@ actual class CurrencyFormatterImpl actual constructor(private val kurrencyLocale
             val value = NSNumber(scaledValue)
             val numberFormatter = createNumberFormatter(currencyCode, NSNumberFormatterCurrencyStyle)
             val formatted = numberFormatter.stringFromNumber(value) ?: return amount
-            "$formatted$suffix"
+            if (suffix.isEmpty()) return formatted
+
+            // Insert suffix after the last digit to keep it adjacent to the number,
+            // preserving correct placement in locales with trailing currency symbols (e.g., "1,23K €")
+            val lastDigitIndex = formatted.indexOfLast { it.isDigit() }
+            if (lastDigitIndex < 0) return "$formatted$suffix"
+            formatted.substring(0, lastDigitIndex + 1) + suffix + formatted.substring(lastDigitIndex + 1)
         }.getOrElse { throwable ->
             KurrencyLog.w { "Compact formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
             amount

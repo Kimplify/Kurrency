@@ -15,7 +15,7 @@ class CurrencyVisualTransformation(
     private val fractionDigits: Int = CurrencyFormatter.getFractionDigitsOrDefault(currencyCode),
 ) : VisualTransformation {
 
-    private val formatter = CurrencyFormatter.forLocale(locale)
+    private val formatter = CurrencyFormatter(locale)
 
     override fun filter(text: AnnotatedString): TransformedText {
         val digitsOnly = text.text.filter { it.isDigit() }
@@ -76,10 +76,13 @@ private class CurrencyOffsetMapping(
 ) : OffsetMapping {
 
     override fun originalToTransformed(offset: Int): Int {
+        if (digitPositions.isEmpty()) return 0
         val clampedOffset = offset.coerceIn(0, originalLength)
-        if (clampedOffset == 0) return if (digitPositions.isNotEmpty()) digitPositions[0] else 0
+        if (clampedOffset == 0) return digitPositions[0].coerceIn(0, formattedLength)
         if (clampedOffset >= digitPositions.size) return formattedLength
-        return digitPositions[clampedOffset]
+        // For offset N (> 0), place the cursor after the Nth digit
+        val posAfterDigit = digitPositions[clampedOffset - 1] + 1
+        return posAfterDigit.coerceIn(0, formattedLength)
     }
 
     override fun transformedToOriginal(offset: Int): Int {

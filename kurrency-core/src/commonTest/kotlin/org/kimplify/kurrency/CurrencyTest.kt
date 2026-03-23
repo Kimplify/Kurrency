@@ -479,17 +479,17 @@ class CurrencyTest {
     }
 
     @Test
-    fun testForLocaleWithSystemLocaleReturnsSameInstance() {
-        val f1 = CurrencyFormatter.forLocale()
-        val f2 = CurrencyFormatter.forLocale()
-        assertSame(f1, f2)
+    fun testFormatterEqualityWithSameLocale() {
+        val f1 = CurrencyFormatter()
+        val f2 = CurrencyFormatter()
+        assertEquals(f1, f2)
     }
 
     @Test
-    fun testForLocaleWithDefaultParamReturnsSameInstance() {
-        val f1 = CurrencyFormatter.forLocale(KurrencyLocale.systemLocale())
-        val f2 = CurrencyFormatter.forLocale(KurrencyLocale.systemLocale())
-        assertSame(f1, f2)
+    fun testFormatterEqualityWithSystemLocale() {
+        val f1 = CurrencyFormatter(KurrencyLocale.systemLocale())
+        val f2 = CurrencyFormatter(KurrencyLocale.systemLocale())
+        assertEquals(f1, f2)
     }
 
     @Test
@@ -814,8 +814,8 @@ class CurrencyTest {
     }
 
     @Test
-    fun testForLocaleNonSystemLocale() {
-        val formatter = CurrencyFormatter.forLocale(KurrencyLocale.GERMANY)
+    fun testFormatterWithNonSystemLocale() {
+        val formatter = CurrencyFormatter(KurrencyLocale.GERMANY)
         assertNotNull(formatter)
         val result = formatter.formatCurrencyStyleResult("100", "EUR")
         assertTrue(result.isSuccess)

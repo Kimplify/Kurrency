@@ -66,7 +66,7 @@ class Kurrency private constructor(val code: String) {
         locale: KurrencyLocale = KurrencyLocale.systemLocale()
     ): Result<String> {
         Cedar.tag("Kurrency").d("Formatting amount: amount=$amount, currency=$code, style=$style")
-        val formatter = CurrencyFormatter.forLocale(locale)
+        val formatter = CurrencyFormatter(locale)
         return when (style) {
             CurrencyStyle.Standard -> formatter.formatCurrencyStyleResult(amount, code)
             CurrencyStyle.Iso -> formatter.formatIsoCurrencyStyleResult(amount, code)
@@ -103,7 +103,7 @@ class Kurrency private constructor(val code: String) {
         amount: String,
         locale: KurrencyLocale = KurrencyLocale.systemLocale(),
     ): Result<String> {
-        val formatter = CurrencyFormatter.forLocale(locale)
+        val formatter = CurrencyFormatter(locale)
         return formatter.formatCompactStyleResult(amount, code)
     }
 
@@ -116,7 +116,7 @@ class Kurrency private constructor(val code: String) {
         minorUnits: Long,
         locale: KurrencyLocale = KurrencyLocale.systemLocale(),
     ): Result<String> {
-        val formatter = CurrencyFormatter.forLocale(locale)
+        val formatter = CurrencyFormatter(locale)
         return formatter.formatMinorUnitsResult(minorUnits, code)
     }
 

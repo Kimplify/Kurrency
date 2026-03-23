@@ -156,13 +156,6 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
             CurrencyFormatterImpl()
         }
 
-        private val systemFormatter: CurrencyFormatter by lazy { CurrencyFormatter() }
-
-        fun forLocale(locale: KurrencyLocale = KurrencyLocale.systemLocale()): CurrencyFormatter {
-            val systemLocale = KurrencyLocale.systemLocale()
-            if (locale.languageTag == systemLocale.languageTag) return systemFormatter
-            return CurrencyFormatter(locale)
-        }
 
         /**
          * Gets the fraction digits for a currency code.
