@@ -1,6 +1,6 @@
 package org.kimplify.kurrency
 
-import org.kimplify.kurrency.extensions.replaceCommaWithDot
+import org.kimplify.kurrency.extensions.normalizeAmount
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
@@ -42,7 +42,7 @@ actual class CurrencyFormatterImpl actual constructor(
         useIsoCode: Boolean
     ): String {
         return runCatching {
-            val normalizedAmount = amount.replaceCommaWithDot().trim()
+            val normalizedAmount = amount.normalizeAmount().trim()
             if (normalizedAmount.isEmpty()) return amount
 
             val value = normalizedAmount.toDouble()

@@ -2,7 +2,7 @@
 
 package org.kimplify.kurrency
 
-import org.kimplify.kurrency.extensions.replaceCommaWithDot
+import org.kimplify.kurrency.extensions.normalizeAmount
 
 @JsFun("function(cur, loc) { return new Intl.NumberFormat(loc || undefined, {style:'currency', currency:cur}).resolvedOptions().maximumFractionDigits; }")
 private external fun jsGetMaxFractionDigits(cur: String, loc: String?): Int
@@ -47,7 +47,7 @@ actual class CurrencyFormatterImpl actual constructor(kurrencyLocale: KurrencyLo
         currencyCode: String
     ): String {
         return runCatching {
-            val normalizedAmount = amount.replaceCommaWithDot().trim()
+            val normalizedAmount = amount.normalizeAmount().trim()
             if (normalizedAmount.isEmpty()) return amount
 
             val doubleValue = normalizedAmount.toDouble()
@@ -64,7 +64,7 @@ actual class CurrencyFormatterImpl actual constructor(kurrencyLocale: KurrencyLo
         currencyCode: String
     ): String {
         return runCatching {
-            val normalizedAmount = amount.replaceCommaWithDot().trim()
+            val normalizedAmount = amount.normalizeAmount().trim()
             if (normalizedAmount.isEmpty()) return amount
 
             val doubleValue = normalizedAmount.toDouble()

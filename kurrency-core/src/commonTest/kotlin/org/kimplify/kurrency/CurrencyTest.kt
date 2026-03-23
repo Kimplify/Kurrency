@@ -214,6 +214,46 @@ class CurrencyTest {
     }
 
     @Test
+    fun testFormatAmountWithUSGroupingSeparators() {
+        val result = Kurrency.USD.formatAmount("1,234.56")
+
+        assertTrue(result.isSuccess)
+        assertNotNull(result.getOrNull())
+    }
+
+    @Test
+    fun testFormatAmountWithLargeUSGroupedNumber() {
+        val result = Kurrency.USD.formatAmount("1,234,567.89")
+
+        assertTrue(result.isSuccess)
+        assertNotNull(result.getOrNull())
+    }
+
+    @Test
+    fun testFormatAmountWithEuropeanGroupingSeparators() {
+        val result = Kurrency.EUR.formatAmount("1.234,56")
+
+        assertTrue(result.isSuccess)
+        assertNotNull(result.getOrNull())
+    }
+
+    @Test
+    fun testFormatAmountWithSpaceGroupingSeparators() {
+        val result = Kurrency.EUR.formatAmount("1 234 567,89")
+
+        assertTrue(result.isSuccess)
+        assertNotNull(result.getOrNull())
+    }
+
+    @Test
+    fun testFormatAmountWithIndianGrouping() {
+        val result = Kurrency.INR.formatAmount("12,34,567.89")
+
+        assertTrue(result.isSuccess)
+        assertNotNull(result.getOrNull())
+    }
+
+    @Test
     fun testPropertyDelegation() {
         val currency = Kurrency.USD
         val delegate = currency.format("100.50")

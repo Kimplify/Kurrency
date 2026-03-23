@@ -1,6 +1,6 @@
 package org.kimplify.kurrency
 
-import org.kimplify.kurrency.extensions.replaceCommaWithDot
+import org.kimplify.kurrency.extensions.normalizeAmount
 
 expect class CurrencyFormatterImpl(kurrencyLocale: KurrencyLocale = KurrencyLocale.systemLocale()) : CurrencyFormat {
     override fun getFractionDigitsOrDefault(currencyCode: String, default: Int): Int
@@ -160,6 +160,6 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
             code.length == 3 && code.all { it.isLetter() }
 
         private fun isValidAmount(amount: String): Boolean =
-            amount.isNotBlank() && amount.replaceCommaWithDot().toDoubleOrNull() != null
+            amount.isNotBlank() && amount.normalizeAmount().toDoubleOrNull() != null
     }
 }

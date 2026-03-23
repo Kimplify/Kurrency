@@ -1,6 +1,6 @@
 package org.kimplify.kurrency
 
-import org.kimplify.kurrency.extensions.replaceCommaWithDot
+import org.kimplify.kurrency.extensions.normalizeAmount
 
 @JsName("Intl")
 private external object IntlCurrency {
@@ -87,7 +87,7 @@ actual class CurrencyFormatterImpl actual constructor(
         currencyCode: String
     ): String {
         return runCatching {
-            val normalizedAmount = amount.replaceCommaWithDot().trim()
+            val normalizedAmount = amount.normalizeAmount().trim()
             if (normalizedAmount.isEmpty()) return amount
 
             val doubleValue = normalizedAmount.toDouble()
@@ -104,7 +104,7 @@ actual class CurrencyFormatterImpl actual constructor(
         currencyCode: String
     ): String {
         return runCatching {
-            val normalizedAmount = amount.replaceCommaWithDot().trim()
+            val normalizedAmount = amount.normalizeAmount().trim()
             if (normalizedAmount.isEmpty()) return amount
 
             val doubleValue = normalizedAmount.toDouble()

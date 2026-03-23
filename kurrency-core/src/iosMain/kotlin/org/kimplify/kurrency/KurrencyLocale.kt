@@ -8,6 +8,27 @@ import platform.Foundation.localeIdentifier
 
 /**
  * iOS implementation of KurrencyLocale using NSLocale.
+ *
+ * ## iOS Locale vs Formatting Locale
+ *
+ * On iOS, there is an important distinction between the **locale** and the **formatting locale**:
+ *
+ * - **Locale ([NSLocale] with a fixed identifier):** Represents a language/region combination
+ *   (e.g., "en_US", "de_DE") with its standard, default formatting rules. This is what
+ *   [KurrencyLocale] wraps — it provides the locale's standard decimal separator, grouping
+ *   separator, and other properties as defined by Unicode CLDR.
+ *
+ * - **Formatting locale ([NSLocale.currentLocale]):** Reflects the user's **actual** formatting
+ *   preferences from iOS Settings > General > Language & Region. Users can customize decimal
+ *   separators, grouping separators, and other formatting details independently of their
+ *   chosen language/region. For example, a user with "en-US" locale can change their decimal
+ *   separator to a comma.
+ *
+ * The properties on this class ([decimalSeparator], [groupingSeparator]) return the **standard**
+ * locale defaults, not the user's custom overrides. For formatting that respects the user's
+ * custom preferences, use [CurrencyFormatter], which uses [NSLocale.currentLocale] internally.
+ *
+ * @see CurrencyFormatterImpl for how formatting respects user's custom preferences
  */
 actual class KurrencyLocale(internal val nsLocale: NSLocale) {
 
@@ -15,18 +36,26 @@ actual class KurrencyLocale(internal val nsLocale: NSLocale) {
         get() = nsLocale.localeIdentifier.replace("_", "-")
 
     /**
-     * Returns the standard decimal separator for this locale.
-     * This is the locale's default, NOT the user's custom preference.
-     * For formatting with custom preferences, use CurrencyFormatter.
+     * Returns the **standard** decimal separator for this locale as defined by Unicode CLDR.
+     *
+     * This is the locale's default, **not** the user's custom preference from iOS Settings.
+     * For example, `KurrencyLocale.US.decimalSeparator` always returns `'.'`, even if the
+     * user has customized their decimal separator to `','` in iOS Settings.
+     *
+     * For formatting that respects the user's custom preferences, use [CurrencyFormatter].
      */
     actual val decimalSeparator: Char
         get() = (nsLocale.objectForKey(NSLocaleDecimalSeparator) as? String)
             ?.firstOrNull() ?: '.'
 
     /**
-     * Returns the standard grouping separator for this locale.
-     * This is the locale's default, NOT the user's custom preference.
-     * For formatting with custom preferences, use CurrencyFormatter.
+     * Returns the **standard** grouping separator for this locale as defined by Unicode CLDR.
+     *
+     * This is the locale's default, **not** the user's custom preference from iOS Settings.
+     * For example, `KurrencyLocale.US.groupingSeparator` always returns `','`, even if the
+     * user has customized their grouping separator in iOS Settings.
+     *
+     * For formatting that respects the user's custom preferences, use [CurrencyFormatter].
      */
     actual val groupingSeparator: Char
         get() = (nsLocale.objectForKey(NSLocaleGroupingSeparator) as? String)

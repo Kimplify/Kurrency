@@ -2,7 +2,7 @@ package org.kimplify.kurrency
 
 import android.icu.text.NumberFormat
 import android.icu.util.Currency
-import org.kimplify.kurrency.extensions.replaceCommaWithDot
+import org.kimplify.kurrency.extensions.normalizeAmount
 import java.math.BigDecimal
 import java.util.Locale
 
@@ -43,7 +43,7 @@ actual class CurrencyFormatterImpl actual constructor(kurrencyLocale: KurrencyLo
         return runCatching {
             val currency = Currency.getInstance(currencyCode.uppercase())
 
-            val normalized = amount.replaceCommaWithDot().trim()
+            val normalized = amount.normalizeAmount().trim()
             if (normalized.isEmpty()) return amount
 
             val value = BigDecimal(normalized)

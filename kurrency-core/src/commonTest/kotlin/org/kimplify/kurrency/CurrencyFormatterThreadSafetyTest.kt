@@ -228,8 +228,8 @@ class CurrencyFormatterThreadSafetyTest {
             }
         }.awaitAll()
 
-        results.forEach { (actual, expected) ->
-            assertEquals(expected, actual)
+        results.forEach { pair: Pair<String?, String> ->
+            assertEquals(pair.second, pair.first)
         }
     }
 }
