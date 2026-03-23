@@ -10,31 +10,13 @@ class Kurrency private constructor(val code: String) {
         Cedar.tag("Kurrency").d("Currency created: code=$code")
     }
 
-    /**
-     * Gets the fraction digits for this currency.
-     * Fraction digits are defined by ISO 4217 and do not vary by locale.
-     *
-     * @return Result containing the number of fraction digits, or failure if currency is invalid
-     */
     val fractionDigits: Result<Int>
         get() = CurrencyFormatter.getFractionDigits(code)
 
-    /**
-     * Gets the fraction digits for this currency, or returns default value.
-     *
-     * @return The number of fraction digits, or 2 if there's an error
-     */
     val fractionDigitsOrDefault: Int
         get() = CurrencyFormatter.getFractionDigitsOrDefault(code)
 
     companion object Companion {
-        /**
-         * Creates a Currency from a currency code.
-         * Note: This validates the currency code exists before creating the Currency instance.
-         *
-         * @param code The ISO 4217 currency code (e.g., "USD", "EUR")
-         * @return Result containing the Currency, or failure if the code is invalid
-         */
         fun fromCode(code: String): Result<Kurrency> {
             return if (isValid(code)) {
                 Result.success(Kurrency(code))

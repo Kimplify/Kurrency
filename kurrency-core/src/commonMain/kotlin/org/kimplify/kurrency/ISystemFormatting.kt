@@ -1,6 +1,6 @@
 package org.kimplify.kurrency
 
-interface SystemFormattingProvider {
+internal interface SystemFormattingProvider {
     val decimalSeparator: String
     val groupingSeparator: String
 }

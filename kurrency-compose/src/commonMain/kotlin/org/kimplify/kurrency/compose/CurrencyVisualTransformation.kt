@@ -31,10 +31,11 @@ class CurrencyVisualTransformation(
 
         val amount = insertDecimalPoint(digitsOnly)
         val formatted = formatter.formatCurrencyStyle(amount, currencyCode)
+        val digitPositionsInFormatted = buildDigitPositionMap(formatted)
 
         return TransformedText(
             AnnotatedString(formatted),
-            CurrencyOffsetMapping(digitsOnly.length, formatted),
+            CurrencyOffsetMapping(digitsOnly.length, formatted.length, digitPositionsInFormatted),
         )
     }
 
@@ -51,6 +52,16 @@ class CurrencyVisualTransformation(
         return if (fractionDigits == 0) "0"
         else "0." + "0".repeat(fractionDigits)
     }
+
+    private fun buildDigitPositionMap(formatted: String): List<Int> {
+        val positions = mutableListOf<Int>()
+        for (i in formatted.indices) {
+            if (formatted[i].isDigit()) {
+                positions.add(i)
+            }
+        }
+        return positions
+    }
 }
 
 private class ZeroOffsetMapping(private val formattedLength: Int) : OffsetMapping {
@@ -60,15 +71,24 @@ private class ZeroOffsetMapping(private val formattedLength: Int) : OffsetMappin
 
 private class CurrencyOffsetMapping(
     private val originalLength: Int,
-    private val formatted: String,
+    private val formattedLength: Int,
+    private val digitPositions: List<Int>,
 ) : OffsetMapping {
 
     override fun originalToTransformed(offset: Int): Int {
-        return formatted.length.coerceAtMost(offset.coerceIn(0, originalLength))
-            .let { formatted.length }
+        val clampedOffset = offset.coerceIn(0, originalLength)
+        if (clampedOffset == 0) return if (digitPositions.isNotEmpty()) digitPositions[0] else 0
+        if (clampedOffset >= digitPositions.size) return formattedLength
+        return digitPositions[clampedOffset]
     }
 
     override fun transformedToOriginal(offset: Int): Int {
+        if (digitPositions.isEmpty()) return 0
+        var count = 0
+        for (pos in digitPositions) {
+            if (pos >= offset) return count
+            count++
+        }
         return originalLength
     }
 }

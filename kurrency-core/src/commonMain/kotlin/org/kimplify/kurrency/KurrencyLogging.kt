@@ -21,7 +21,7 @@ object KurrencyLogging {
     var logger: KurrencyLogger = CedarLogger()
 }
 
-class CedarLogger : KurrencyLogger {
+internal class CedarLogger : KurrencyLogger {
     override fun debug(tag: String, message: String) {
         Cedar.tag(tag).d(message)
     }

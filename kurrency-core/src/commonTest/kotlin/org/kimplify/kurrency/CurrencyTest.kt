@@ -3,12 +3,13 @@ package org.kimplify.kurrency
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class CurrencyTest {
-    
+
     @Test
     fun testCurrencyCreation() {
         val currency = Kurrency.USD
@@ -84,7 +85,9 @@ class CurrencyTest {
         val result = currency.formatAmount("100.50")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("100"))
     }
 
     @Test
@@ -93,7 +96,9 @@ class CurrencyTest {
         val result = currency.formatAmount(100.50)
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("100"))
     }
 
     @Test
@@ -104,6 +109,7 @@ class CurrencyTest {
         assertTrue(result.isSuccess)
         val formatted = result.getOrNull()
         assertNotNull(formatted)
+        assertTrue(formatted.contains("1") && formatted.contains("234") && formatted.contains("56"))
     }
 
     @Test
@@ -114,6 +120,7 @@ class CurrencyTest {
         assertTrue(result.isSuccess)
         val formatted = result.getOrNull()
         assertNotNull(formatted)
+        assertTrue(formatted.contains("USD"))
     }
 
     @Test
@@ -137,8 +144,6 @@ class CurrencyTest {
 
     @Test
     fun testFormatAmountWithInvalidCurrencyCode() {
-        // Since constructor is private, invalid currencies can't be created
-        // This test now validates that fromCode() fails for invalid codes
         val result = Kurrency.fromCode("INVALID")
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is KurrencyError.InvalidCurrencyCode)
@@ -146,8 +151,6 @@ class CurrencyTest {
 
     @Test
     fun testFormatAmountWithShortCurrencyCode() {
-        // Since constructor is private, invalid currencies can't be created
-        // This test now validates that fromCode() fails for short codes
         val result = Kurrency.fromCode("US")
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is KurrencyError.InvalidCurrencyCode)
@@ -155,8 +158,6 @@ class CurrencyTest {
 
     @Test
     fun testFormatAmountWithLongCurrencyCode() {
-        // Since constructor is private, invalid currencies can't be created
-        // This test now validates that fromCode() fails for long codes
         val result = Kurrency.fromCode("USDD")
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is KurrencyError.InvalidCurrencyCode)
@@ -185,7 +186,9 @@ class CurrencyTest {
         val result = currency.formatAmount("0.00")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("0"))
     }
 
     @Test
@@ -194,7 +197,10 @@ class CurrencyTest {
         val result = currency.formatAmount("-100.50")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("100"))
+        assertTrue(formatted.contains("-") || formatted.contains("("))
     }
 
     @Test
@@ -203,7 +209,9 @@ class CurrencyTest {
         val result = currency.formatAmount("999999999.99")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("999"))
     }
 
     @Test
@@ -212,6 +220,9 @@ class CurrencyTest {
         val result = currency.formatAmount("100,50")
 
         assertTrue(result.isSuccess)
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("100"))
     }
 
     @Test
@@ -219,7 +230,9 @@ class CurrencyTest {
         val result = Kurrency.USD.formatAmount("1,234.56")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("1") && formatted.contains("234"))
     }
 
     @Test
@@ -227,7 +240,9 @@ class CurrencyTest {
         val result = Kurrency.USD.formatAmount("1,234,567.89")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("1") && formatted.contains("234"))
     }
 
     @Test
@@ -235,7 +250,9 @@ class CurrencyTest {
         val result = Kurrency.EUR.formatAmount("1.234,56")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("1") && formatted.contains("234"))
     }
 
     @Test
@@ -243,7 +260,9 @@ class CurrencyTest {
         val result = Kurrency.EUR.formatAmount("1 234 567,89")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("1") && formatted.contains("234"))
     }
 
     @Test
@@ -251,23 +270,27 @@ class CurrencyTest {
         val result = Kurrency.INR.formatAmount("12,34,567.89")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("1") && formatted.contains("234"))
     }
 
     @Test
     fun testPropertyDelegation() {
         val currency = Kurrency.USD
         val delegate = currency.format("100.50")
-
         assertNotNull(delegate)
+        val formatted: String by delegate
+        assertTrue(formatted.isNotBlank())
     }
 
     @Test
     fun testPropertyDelegationWithStyle() {
         val currency = Kurrency.USD
         val delegate = currency.format("100.50", CurrencyStyle.Iso)
-
         assertNotNull(delegate)
+        val formatted: String by delegate
+        assertTrue(formatted.isNotBlank())
     }
 
     @Test
@@ -276,7 +299,9 @@ class CurrencyTest {
         val result = currency.formatAmount("1234.56")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("1") && formatted.contains("234"))
     }
 
     @Test
@@ -285,7 +310,9 @@ class CurrencyTest {
         val result = currency.formatAmount("1234.56")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("1") && formatted.contains("234"))
     }
 
     @Test
@@ -294,7 +321,9 @@ class CurrencyTest {
         val result = currency.formatAmount("1234")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("1") && formatted.contains("234"))
     }
 
     @Test
@@ -303,7 +332,9 @@ class CurrencyTest {
         val result = currency.formatAmount("1234.56")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("1") && formatted.contains("234"))
     }
 
     @Test
@@ -326,8 +357,6 @@ class CurrencyTest {
 
     @Test
     fun testCurrencyEqualityWithDifferentFractionDigits() {
-        // This test is no longer valid since constructor is private
-        // and fraction digits is a computed property
         val currency1 = Kurrency.USD
         val currency2 = Kurrency.USD
 
@@ -350,7 +379,7 @@ class CurrencyTest {
 
         assertTrue(currency1.hashCode() != currency2.hashCode())
     }
-    
+
     @Test
     fun testIsValidWithValidCurrency() {
         assertTrue(Kurrency.isValid("USD"))
@@ -358,7 +387,7 @@ class CurrencyTest {
         assertTrue(Kurrency.isValid("GBP"))
         assertTrue(Kurrency.isValid("JPY"))
     }
-    
+
     @Test
     fun testIsValidWithInvalidFormat() {
         assertFalse(Kurrency.isValid("US"))
@@ -366,18 +395,18 @@ class CurrencyTest {
         assertFalse(Kurrency.isValid("123"))
         assertFalse(Kurrency.isValid("US$"))
     }
-    
+
     @Test
     fun testIsValidWithInvalidCurrencyCode() {
         assertFalse(Kurrency.isValid("INVALID"))
         assertFalse(Kurrency.isValid("XYZ"))
     }
-    
+
     @Test
     fun testIsValidWithEmptyString() {
         assertFalse(Kurrency.isValid(""))
     }
-    
+
     @Test
     fun testIsValidWithLowercase() {
         assertTrue(Kurrency.isValid("usd"))
@@ -385,11 +414,8 @@ class CurrencyTest {
         assertTrue(Kurrency.isValid("jpy"))
     }
 
-    // Tests for convenience currency properties
-
     @Test
     fun testConvenienceCurrencyProperties() {
-        // Test all 16 predefined currencies
         assertEquals("USD", Kurrency.USD.code)
         assertEquals("EUR", Kurrency.EUR.code)
         assertEquals("GBP", Kurrency.GBP.code)
@@ -410,7 +436,6 @@ class CurrencyTest {
 
     @Test
     fun testConvenienceCurrencyFractionDigits() {
-        // Verify fraction digits are correct for popular currencies
         assertEquals(2, Kurrency.USD.fractionDigits.getOrNull())
         assertEquals(2, Kurrency.EUR.fractionDigits.getOrNull())
         assertEquals(2, Kurrency.GBP.fractionDigits.getOrNull())
@@ -422,7 +447,6 @@ class CurrencyTest {
 
     @Test
     fun testConvenienceCurrencyEquality() {
-        // Each access should return equal instances
         val usd1 = Kurrency.USD
         val usd2 = Kurrency.USD
         assertEquals(usd1, usd2)
@@ -430,16 +454,7 @@ class CurrencyTest {
     }
 
     @Test
-    fun testConvenienceCurrencyFormatting() {
-        // Test formatting with convenience properties
-        val result = Kurrency.USD.formatAmount("100.50")
-        assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
-    }
-
-    @Test
     fun testAllConvenienceCurrenciesAreValid() {
-        // Ensure all convenience currencies pass validation
         val currencies = listOf(
             Kurrency.USD, Kurrency.EUR, Kurrency.GBP, Kurrency.JPY,
             Kurrency.AUD, Kurrency.CAD, Kurrency.CHF, Kurrency.CNY,
@@ -500,13 +515,16 @@ class CurrencyTest {
         val formatted = result.getOrNull()
         assertNotNull(formatted)
         assertTrue(formatted.isNotBlank())
+        assertTrue(formatted.length < 20)
     }
 
     @Test
     fun testCompactFormatOnKurrency() {
         val result = Kurrency.USD.formatAmountCompact("1000000")
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("1"))
     }
 
     @Test
@@ -525,17 +543,20 @@ class CurrencyTest {
 
     @Test
     fun testMinorUnitsFormatting() {
-        val result = Kurrency.USD.formatMinorUnits(123456L)
+        val result = Kurrency.USD.formatMinorUnits(12345L)
         assertTrue(result.isSuccess)
         val formatted = result.getOrNull()
         assertNotNull(formatted)
-        assertTrue(formatted.contains("1") && formatted.contains("234"))
+        assertTrue(formatted.contains("123"))
     }
 
     @Test
     fun testMinorUnitsFormattingZeroFractionCurrency() {
         val result = Kurrency.JPY.formatMinorUnits(1000L)
         assertTrue(result.isSuccess)
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("1000") || formatted.contains("1,000"))
     }
 
     @Test
@@ -545,6 +566,7 @@ class CurrencyTest {
         assertEquals(Kurrency.USD, amount.currency)
         val formatted = amount.formatOrEmpty()
         assertTrue(formatted.isNotBlank())
+        assertTrue(formatted.contains("123"))
     }
 
     @Test
@@ -616,5 +638,206 @@ class CurrencyTest {
         assertTrue(jpyResult.isSuccess)
         assertEquals(0, jpyResult.getOrNull())
     }
-}
 
+    @Test
+    fun testAccountingStyleZeroAmount() {
+        val result = Kurrency.USD.formatAmount("0.00", CurrencyStyle.Accounting)
+        assertTrue(result.isSuccess)
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertFalse(formatted.contains("("))
+    }
+
+    @Test
+    fun testAccountingStyleLargeNegative() {
+        val result = Kurrency.USD.formatAmount("-999999.99", CurrencyStyle.Accounting)
+        assertTrue(result.isSuccess)
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.startsWith("(") && formatted.endsWith(")"))
+        assertFalse(formatted.contains("-"))
+    }
+
+    @Test
+    fun testCurrencyAmountAccountingStyle() {
+        val positiveAmount = CurrencyAmount.of(10050L, Kurrency.USD)
+        val positiveFormatted = positiveAmount.format(CurrencyStyle.Accounting)
+        assertTrue(positiveFormatted.isSuccess)
+        assertFalse(positiveFormatted.getOrNull()!!.contains("("))
+
+        val negativeAmount = CurrencyAmount.of(-10050L, Kurrency.USD)
+        val negativeFormatted = negativeAmount.format(CurrencyStyle.Accounting)
+        assertTrue(negativeFormatted.isSuccess)
+        assertTrue(negativeFormatted.getOrNull()!!.startsWith("("))
+    }
+
+    @Test
+    fun testParseCurrencyRoundTrip() {
+        val formatter = CurrencyFormatter(KurrencyLocale.US)
+        val original = 1234.56
+        val formatted = formatter.formatCurrencyStyle(original.toString(), "USD")
+        val parsed = formatter.parseCurrencyAmountResult(formatted, "USD")
+        assertTrue(parsed.isSuccess)
+        assertEquals(original, parsed.getOrNull()!!, 0.01)
+    }
+
+    @Test
+    fun testParseCurrencyAmountInvalidCurrency() {
+        val formatter = CurrencyFormatter(KurrencyLocale.US)
+        val result = formatter.parseCurrencyAmountResult("100", "XYZ")
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun testMinorUnitsUSD() {
+        val formatter = CurrencyFormatter(KurrencyLocale.US)
+        val result = formatter.formatMinorUnitsResult(12345L, "USD")
+        assertTrue(result.isSuccess)
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("123"))
+    }
+
+    @Test
+    fun testMinorUnitsJPY() {
+        val formatter = CurrencyFormatter(KurrencyLocale.US)
+        val result = formatter.formatMinorUnitsResult(1000L, "JPY")
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun testMinorUnitsInvalidCurrency() {
+        val formatter = CurrencyFormatter(KurrencyLocale.US)
+        val result = formatter.formatMinorUnitsResult(1000L, "XYZ")
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun testMinorUnitsZero() {
+        val formatter = CurrencyFormatter(KurrencyLocale.US)
+        val result = formatter.formatMinorUnitsResult(0L, "USD")
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun testMinorUnitsNegative() {
+        val formatter = CurrencyFormatter(KurrencyLocale.US)
+        val result = formatter.formatMinorUnitsResult(-500L, "USD")
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun testCurrencyAmountOf() {
+        val amount = CurrencyAmount.of(12345L, Kurrency.USD)
+        assertEquals(12345L, amount.minorUnits)
+        assertEquals(Kurrency.USD, amount.currency)
+    }
+
+    @Test
+    fun testCurrencyAmountFromMajorUnitsDouble() {
+        val result = CurrencyAmount.fromMajorUnits(123.45, Kurrency.USD)
+        assertTrue(result.isSuccess)
+        assertEquals(12345L, result.getOrNull()?.minorUnits)
+    }
+
+    @Test
+    fun testCurrencyAmountFromMajorUnitsInvalid() {
+        val result = CurrencyAmount.fromMajorUnits("abc", Kurrency.USD)
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun testCurrencyAmountFormatStandard() {
+        val amount = CurrencyAmount.of(10050L, Kurrency.USD)
+        val result = amount.format(CurrencyStyle.Standard)
+        assertTrue(result.isSuccess)
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("100"))
+    }
+
+    @Test
+    fun testCurrencyAmountFormatIso() {
+        val amount = CurrencyAmount.of(10050L, Kurrency.USD)
+        val result = amount.format(CurrencyStyle.Iso)
+        assertTrue(result.isSuccess)
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("USD"))
+    }
+
+    @Test
+    fun testCurrencyAmountEquality() {
+        val a1 = CurrencyAmount.of(100L, Kurrency.USD)
+        val a2 = CurrencyAmount.of(100L, Kurrency.USD)
+        val a3 = CurrencyAmount.of(200L, Kurrency.USD)
+        val a4 = CurrencyAmount.of(100L, Kurrency.EUR)
+        assertEquals(a1, a2)
+        assertNotEquals(a1, a3)
+        assertNotEquals(a1, a4)
+    }
+
+    @Test
+    fun testCompactFormatSmallAmount() {
+        val formatter = CurrencyFormatter(KurrencyLocale.US)
+        val result = formatter.formatCompactStyleResult("500", "USD")
+        assertTrue(result.isSuccess)
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("5"))
+    }
+
+    @Test
+    fun testCompactFormatNegativeAmount() {
+        val formatter = CurrencyFormatter(KurrencyLocale.US)
+        val result = formatter.formatCompactStyleResult("-1000000", "USD")
+        assertTrue(result.isSuccess)
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("1"))
+    }
+
+    @Test
+    fun testCompactFormatViaKurrency() {
+        val result = Kurrency.USD.formatAmountCompact(1000000.0)
+        assertTrue(result.isSuccess)
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("1"))
+    }
+
+    @Test
+    fun testFormatterEqualityDifferentLocales() {
+        val us = CurrencyFormatter(KurrencyLocale.US)
+        val de = CurrencyFormatter(KurrencyLocale.GERMANY)
+        assertNotEquals(us, de)
+    }
+
+    @Test
+    fun testForLocaleNonSystemLocale() {
+        val formatter = CurrencyFormatter.forLocale(KurrencyLocale.GERMANY)
+        assertNotNull(formatter)
+        val result = formatter.formatCurrencyStyleResult("100", "EUR")
+        assertTrue(result.isSuccess)
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("100"))
+    }
+
+    @Test
+    fun testMetadataPluralIrregularForms() {
+        assertEquals("Japanese Yen", CurrencyMetadata.JPY.displayNamePlural)
+        assertEquals("Chinese Yuan", CurrencyMetadata.CNY.displayNamePlural)
+        assertEquals("South African Rand", CurrencyMetadata.ZAR.displayNamePlural)
+        assertEquals("South Korean Won", CurrencyMetadata.KRW.displayNamePlural)
+        assertEquals("Thai Baht", CurrencyMetadata.THB.displayNamePlural)
+        assertEquals("Vietnamese Dong", CurrencyMetadata.VND.displayNamePlural)
+        assertEquals("Bangladeshi Taka", CurrencyMetadata.BDT.displayNamePlural)
+        assertEquals("Nigerian Naira", CurrencyMetadata.NGN.displayNamePlural)
+        assertEquals("Swedish Kronor", CurrencyMetadata.SEK.displayNamePlural)
+        assertEquals("Romanian Lei", CurrencyMetadata.RON.displayNamePlural)
+        assertEquals("Bulgarian Leva", CurrencyMetadata.BGN.displayNamePlural)
+        assertEquals("Brazilian Reais", CurrencyMetadata.BRL.displayNamePlural)
+        assertEquals("Peruvian Soles", CurrencyMetadata.PEN.displayNamePlural)
+    }
+}
