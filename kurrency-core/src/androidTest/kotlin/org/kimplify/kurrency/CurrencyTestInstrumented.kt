@@ -291,5 +291,54 @@ class CurrencyTestInstrumented {
         assertTrue(Kurrency.isValid("eur"))
         assertTrue(Kurrency.isValid("jpy"))
     }
+
+    // ---- Edge case tests ----
+
+    @Test
+    fun testInfinityAmountReturnsError() {
+        val currency = Kurrency.fromCode("USD").getOrThrow()
+        val result = currency.formatAmount("Infinity")
+        assertTrue(result.isFailure, "Infinity should not be a valid amount")
+        assertTrue(result.exceptionOrNull() is KurrencyError.InvalidAmount)
+    }
+
+    @Test
+    fun testNaNAmountReturnsError() {
+        val currency = Kurrency.fromCode("USD").getOrThrow()
+        val result = currency.formatAmount("NaN")
+        assertTrue(result.isFailure, "NaN should not be a valid amount")
+        assertTrue(result.exceptionOrNull() is KurrencyError.InvalidAmount)
+    }
+
+    @Test
+    fun testNegativeZeroFormatsSuccessfully() {
+        val currency = Kurrency.fromCode("USD").getOrThrow()
+        val result = currency.formatAmount("-0.00")
+        // Negative zero should either succeed (formatting as $0.00) or fail gracefully
+        // Most implementations treat -0 as 0
+        assertTrue(result.isSuccess, "Negative zero should format successfully")
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("0"), "Expected zero in: $formatted")
+    }
+
+    @Test
+    fun testBhdThreeDecimalPlaces() {
+        val currency = Kurrency.fromCode("BHD").getOrThrow()
+        assertEquals(3, currency.fractionDigits.getOrNull(), "BHD should have 3 fraction digits")
+        val result = currency.formatAmount("100.123")
+        assertTrue(result.isSuccess)
+        assertNotNull(result.getOrNull())
+    }
+
+    @Test
+    fun testVeryLargeAmountFormatsSuccessfully() {
+        val currency = Kurrency.fromCode("USD").getOrThrow()
+        val result = currency.formatAmount("99999999999999.99")
+        assertTrue(result.isSuccess, "Very large amount should format successfully")
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.contains("9"), "Expected digits in: $formatted")
+    }
 }
 
