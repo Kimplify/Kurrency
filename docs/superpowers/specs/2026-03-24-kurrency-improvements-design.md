@@ -155,15 +155,17 @@ Verify that `CurrencyFormatter` and `Kurrency` are safe under concurrent access.
 
 Added to `KurrencyLocale` companion object:
 
-| Locale Constant | BCP 47 Tag | Script Direction |
-|----------------|------------|-----------------|
-| `ARABIC_SA` | `ar-SA` | RTL |
-| `ARABIC_EG` | `ar-EG` | RTL |
-| `HEBREW` | `he-IL` | RTL |
-| `PERSIAN` | `fa-IR` | RTL |
-| `URDU` | `ur-PK` | RTL |
+| Locale Constant | BCP 47 Tag | Script Direction | Note |
+|----------------|------------|-----------------|------|
+| `SAUDI_ARABIA` | `ar-SA` | RTL | **Already exists** — no new constant needed |
+| `ARABIC_EG` | `ar-EG` | RTL | New |
+| `HEBREW` | `he-IL` | RTL | New |
+| `PERSIAN` | `fa-IR` | RTL | New |
+| `URDU` | `ur-PK` | RTL | New |
 
-Each gets platform-specific `actual` implementations with correct `decimalSeparator` and `groupingSeparator`.
+> **Note:** `SAUDI_ARABIA` (`ar-SA`) already exists in the `KurrencyLocale` companion on all platforms. It is reused as-is for RTL coverage — no rename or duplication.
+
+Each new locale gets platform-specific `actual` implementations with correct `decimalSeparator` and `groupingSeparator`.
 
 ### 2.2 RTL-Aware Formatting in Core
 
@@ -177,6 +179,15 @@ val numeralSystem: NumeralSystem  // WESTERN, EASTERN_ARABIC, PERSIAN
 ```kotlin
 enum class NumeralSystem { WESTERN, EASTERN_ARABIC, PERSIAN }
 ```
+
+> **Important: `expect`/`actual` implementation required.** `KurrencyLocale` is an `expect class` with platform-specific `actual` declarations. Both new properties require an `actual` implementation on every platform:
+>
+> | Platform | `isRightToLeft` derivation | `numeralSystem` derivation |
+> |----------|---------------------------|---------------------------|
+> | **Android** | `TextUtils.getLayoutDirectionFromLocale(locale)` | Check locale script via `UScript` or hardcoded tag lookup |
+> | **iOS** | `NSLocale.characterDirectionForLanguage(tag)` | `NSLocale.exemplarCharacterSet` inspection |
+> | **JVM** | `ComponentOrientation.getOrientation(locale).isLeftToRight` (negated) | Hardcoded tag-based lookup (no JVM native API) |
+> | **JS/WasmJs** | `Intl.Locale(tag).textInfo.direction` (with fallback for older engines) | Hardcoded tag-based lookup |
 
 **Changes to `CurrencyFormatterImpl` (all platforms):**
 
@@ -206,7 +217,7 @@ enum class NumeralSystem { WESTERN, EASTERN_ARABIC, PERSIAN }
 
 | Item | Count |
 |------|-------|
-| New predefined locales | 5 |
+| New predefined locales | 4 (reuse existing `SAUDI_ARABIA`) |
 | New `KurrencyLocale` properties | 2 (`isRightToLeft`, `numeralSystem`) |
 | New enum | 1 (`NumeralSystem`) |
 | RTL test file | 1 |
@@ -238,7 +249,7 @@ enum class NumeralSystem { WESTERN, EASTERN_ARABIC, PERSIAN }
 2. Detect accounting notation — `(...)` means negative
 3. Strip grouping separators (locale-specific: `,` or `.` or ` ` or `\u00A0`)
 4. Normalize decimal separator to `.`
-5. Detect compact suffixes (`K`, `M`, `B`, `T` and locale variants)
+5. Detect compact suffixes — **English only for v1** (`K`, `M`, `B`, `T`). Compact round-trip for non-English locales is explicitly out of scope because iOS hardcodes English suffixes and locale-specific suffix tables (e.g., German `Mio.`, `Mrd.`) are not standardized. Non-English compact strings return `KurrencyError.InvalidAmount` when parsed.
 6. Strip RTL bidi marks (`LRM`/`RLM`) before processing
 7. Validate remaining string is a valid number
 8. Return `KurrencyError.InvalidAmount` on failure
@@ -251,7 +262,7 @@ enum class NumeralSystem { WESTERN, EASTERN_ARABIC, PERSIAN }
 |----------|---------|-------------|
 | `parseCurrencyAmount(formattedText, currencyCode)` | `Double?` | Existing — made robust |
 | `parseCurrencyAmountResult(formattedText, currencyCode)` | `Result<Double>` | Existing — made robust |
-| `parseToMinorUnits(formattedText, currencyCode)` | `Result<Long>` | New — returns minor units |
+| `parseToMinorUnits(formattedText, currencyCode)` | `Result<Long>` | New — returns minor units. **Precision note:** Uses `String`-based decimal arithmetic internally (not `Double` multiplication) to avoid floating-point precision loss for 3-decimal currencies like KWD/BHD. The parsed decimal string is split at the decimal point and digits are counted/shifted to produce the `Long` minor units value directly. |
 | `parseToCurrencyAmount(formattedText, currency)` | `Result<CurrencyAmount>` | New — returns `CurrencyAmount` |
 
 **On `CurrencyAmount`:**
@@ -268,7 +279,9 @@ companion object {
 
 ### 3.3 Round-Trip Guarantee
 
-Core contract: `parse(format(amount)) == amount` for all styles and locales.
+Core contract: `parse(format(amount)) == amount` for Standard, ISO, and Accounting styles across all locales.
+
+> **Compact style caveat:** Round-trip is guaranteed for English locales only. Compact formatting is lossy by nature (`1,234` → `$1.2K` → `1200`), so the round-trip guarantee for compact is: `parse(formatCompact(amount))` produces the compact-rounded value, not the original.
 
 ### 3.4 Tests
 
@@ -346,11 +359,11 @@ CurrencyFormatOptions {
 
 ### 4.4 Integration Points
 
-**On `Kurrency`:**
+**On `Kurrency`:** Uses a distinct method name `formatAmountWithOptions` to avoid overload confusion with the existing `formatAmount(amount, style, locale)`:
 
 ```kotlin
-fun formatAmount(amount: String, options: CurrencyFormatOptions, locale: KurrencyLocale): Result<String>
-fun formatAmount(amount: Double, options: CurrencyFormatOptions, locale: KurrencyLocale): Result<String>
+fun formatAmountWithOptions(amount: String, options: CurrencyFormatOptions, locale: KurrencyLocale): Result<String>
+fun formatAmountWithOptions(amount: Double, options: CurrencyFormatOptions, locale: KurrencyLocale): Result<String>
 ```
 
 **On `CurrencyFormatter`:**
@@ -365,7 +378,15 @@ fun formatWithOptions(amount: String, currencyCode: String, options: CurrencyFor
 fun format(options: CurrencyFormatOptions, locale: KurrencyLocale): Result<String>
 ```
 
-Existing `CurrencyStyle` methods remain unchanged. Internally, each `CurrencyStyle` maps to a predefined `CurrencyFormatOptions` instance.
+Existing `CurrencyStyle` methods remain unchanged. Internally, each `CurrencyStyle` maps to a predefined `CurrencyFormatOptions`:
+
+| `CurrencyStyle` | Equivalent `CurrencyFormatOptions` |
+|-----------------|-----------------------------------|
+| `Standard` | All defaults |
+| `Iso` | `symbolDisplay = SymbolDisplay.ISO_CODE` |
+| `Accounting` | `negativeStyle = NegativeStyle.PARENTHESES` |
+
+> **Note on Accounting style:** The existing `Kurrency.formatAmount` for `CurrencyStyle.Accounting` uses post-processing to wrap negative amounts in parentheses. `NegativeStyle.PARENTHESES` in `CurrencyFormatOptions` delegates to this same post-processing logic — it is not a separate code path.
 
 ### 4.5 Platform Implementation
 
@@ -375,7 +396,9 @@ Each `CurrencyFormatterImpl` applies options by configuring the native formatter
 - **iOS:** Map to `NSNumberFormatter` properties (`groupingSeparator`, `minimumFractionDigits`, etc.)
 - **JS/WasmJs:** Map to `Intl.NumberFormat` options object (`useGrouping`, `minimumFractionDigits`, etc.)
 
-Options that can't be expressed natively (like `ZeroDisplay.DASH`) are applied as post-processing.
+Options that can't be expressed natively (like `ZeroDisplay.DASH`) are applied as post-processing on the formatted string.
+
+> **`ZeroDisplay` + `CurrencyVisualTransformation` interaction:** When `ZeroDisplay.DASH` or `ZeroDisplay.EMPTY` replaces the formatted output, the digit position list becomes empty and `CurrencyOffsetMapping` cannot map cursor positions. `CurrencyVisualTransformation` must detect these sentinel values and use a `ZeroOffsetMapping` that maps all source offsets to `0` (for `EMPTY`) or `formattedLength` (for `DASH`). This is handled as a special case in the `filter()` method, not in the formatter.
 
 ### 4.6 Tests
 
@@ -396,7 +419,7 @@ Options that can't be expressed natively (like `ZeroDisplay.DASH`) are applied a
 | `CurrencyFormatOptions` data class | 1 |
 | Supporting enums | 4 |
 | Builder + DSL | 1 |
-| New `formatAmount`/`formatWithOptions` overloads | 4 |
+| New `formatAmountWithOptions`/`formatWithOptions` overloads | 4 |
 | Format options test file | 1 |
 | Format options tests | ~25 |
 
@@ -440,7 +463,15 @@ Minor units as canonical wire format — avoids floating-point ambiguity.
 "en-US"
 ```
 
-Custom `KSerializer<KurrencyLocale>` using `KurrencyLocale.fromLanguageTag()`.
+Custom `KSerializer<KurrencyLocale>` using `KurrencyLocale.fromLanguageTag()`. On invalid tags, throws `SerializationException` wrapping `KurrencyError.InvalidLocale` (new error type — see below).
+
+> **New error type required:** `KurrencyLocale.fromLanguageTag()` currently returns `Result.failure(IllegalArgumentException(...))`, not a `KurrencyError`. As part of this sprint, add:
+>
+> ```kotlin
+> data class InvalidLocale(val languageTag: String) : KurrencyError()
+> ```
+>
+> Update `fromLanguageTag()` on all platforms to return `KurrencyError.InvalidLocale` instead of `IllegalArgumentException`. This is a behavioral change but not a binary-breaking one since the error is inside a `Result`.
 
 **`CurrencyFormatOptions` → auto-generated:**
 
@@ -455,7 +486,17 @@ Custom `KSerializer<KurrencyLocale>` using `KurrencyLocale.fromLanguageTag()`.
 }
 ```
 
-All supporting enums annotated `@Serializable`. Null fields omitted with `@EncodeDefault(NEVER)`.
+All supporting enums annotated `@Serializable`. Nullable fields (`minFractionDigits`, `maxFractionDigits`) with `null` defaults are omitted from JSON output. This requires configuring the `Json` instance with `explicitNulls = false`:
+
+```kotlin
+val KurrencyJson = Json {
+    explicitNulls = false       // omit null fields
+    encodeDefaults = false      // omit fields matching their default value
+    ignoreUnknownKeys = true    // forward compatibility
+}
+```
+
+This `KurrencyJson` instance is provided as a public constant for consumers who need serialization. The library does not force a global `Json` configuration.
 
 ### 5.3 Implementation Strategy
 
@@ -485,6 +526,8 @@ Serializers live in `org.kimplify.kurrency.serialization` package within `kurren
 | Item | Count |
 |------|-------|
 | Custom serializers | 3 (`Kurrency`, `CurrencyAmount`, `KurrencyLocale`) |
+| New error type | 1 (`KurrencyError.InvalidLocale`) |
+| `KurrencyJson` configuration | 1 |
 | `@Serializable` annotations | `CurrencyFormatOptions` + 4 enums |
 | Serialization test files | 4 |
 | Serialization tests | ~20 |
@@ -510,7 +553,13 @@ object CurrencyConverter {
 }
 ```
 
-Validates inputs (rate > 0, amount is finite), multiplies, returns `CurrencyAmount` in target currency with correct minor units rounding.
+Validates inputs (rate > 0, amount is finite), multiplies, and returns `CurrencyAmount` in target currency.
+
+**Rounding specification:** The input `amount: Double` is treated as major units. The conversion result (`amount * rate`) is rounded to the target currency's fraction digits using `HALF_EVEN` (banker's rounding) before converting to minor units (`Long`). For example:
+- `convert(100.0, USD, JPY, 150.456)` → `15046` minor units (JPY has 0 fraction digits, so `15045.6` rounds to `15046`, and minor = major for JPY)
+- `convert(100.0, USD, KWD, 0.30712)` → `30712` minor units (KWD has 3 fraction digits, so `30.712` × 1000)
+
+String-based decimal arithmetic is used internally to avoid `Double` precision loss during the minor units conversion step.
 
 ### 6.2 `RateProvider` Interface
 
@@ -643,13 +692,18 @@ fun formatSpoken(
 
 ### 7.2 Number-to-Words Engine
 
-Internal `expect`/`actual` implementation:
+**Approach: Custom shared implementation in `commonMain`, NOT platform-native APIs.**
 
-- **iOS:** `NSNumberFormatter` with `.spellOut` style
-- **Android/JVM:** `RuleBasedNumberFormat` (ICU) or custom implementation
-- **JS/WasmJs:** Custom implementation (no native spell-out)
+Using platform-native spell-out APIs (`NSNumberFormatter.spellOut`, ICU `RuleBasedNumberFormat`) would produce divergent output across platforms (e.g., iOS says "minus" vs ICU says "negative"), making `commonTest` assertions impossible. Instead:
 
-Initially supports English (`en`). Platform-native engines handle other languages where available.
+- **Single `NumberToWords` object in `commonMain`** with a pure Kotlin implementation for English.
+- Covers: 0–999,999,999,999 (trillions), negatives, decimals.
+- No `expect`/`actual` needed — fully shared code.
+- Future locale support can be added by registering language-specific word tables.
+
+> **JVM dependency note:** No `icu4j` dependency needed since we use our own implementation. This avoids adding a ~13MB transitive dependency to `kurrency-core`.
+
+**Trade-off:** We lose automatic multi-language support from native APIs. This is acceptable because `formatSpoken()` is primarily for accessibility (screen readers), and English covers the vast majority of accessibility use cases. Non-English spoken format can be added incrementally via language word tables without platform-specific code.
 
 ### 7.3 Sub-Unit Names in `CurrencyMetadata`
 
@@ -735,7 +789,7 @@ Renders formatted amount visually + sets spoken description automatically.
 |------|-------|
 | `formatSpoken()` | 1 |
 | `formatWithName()` | 1 |
-| Number-to-words engine (expect/actual) | 1 |
+| `NumberToWords` engine (commonMain, pure Kotlin) | 1 |
 | `CurrencyMetadata` sub-unit fields | 2 |
 | `Modifier.currencySemantics()` | 1 |
 | `CurrencyText` composable | 1 |
@@ -786,9 +840,11 @@ Capture exact `TransformedText` output (formatted string + offset mapping) for k
 
 Covers: each `CurrencyStyle` × 5 representative locales, RTL locales, edge cases.
 
-**Location:** `commonTest/.../golden/VisualTransformationGoldenTest.kt`
+**Location:** `kurrency-compose/src/commonTest/.../golden/VisualTransformationGoldenTest.kt`
 
-**Update workflow:** When a golden test fails, developer reviews diff and runs `./gradlew updateGoldens` to accept new output.
+> **Module note:** `CurrencyVisualTransformation` lives in `kurrency-compose`, not `kurrency-core`. Golden tests must be in `kurrency-compose`'s test source set. The `updateGoldens` Gradle task is registered in `kurrency-compose/build.gradle.kts`.
+
+**Update workflow:** When a golden test fails, developer reviews diff and runs `./gradlew :kurrency-compose:updateGoldens` to accept new output.
 
 ### 8.3 Meta-Tests (~5)
 
