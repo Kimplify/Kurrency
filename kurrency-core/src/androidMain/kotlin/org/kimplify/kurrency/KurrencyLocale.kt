@@ -1,5 +1,7 @@
 package org.kimplify.kurrency
 
+import android.text.TextUtils
+import android.util.LayoutDirection
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
@@ -15,6 +17,12 @@ actual class KurrencyLocale(val locale: Locale) {
 
     actual val usesCommaAsDecimalSeparator: Boolean
         get() = decimalSeparator == ','
+
+    actual val isRightToLeft: Boolean
+        get() = TextUtils.getLayoutDirectionFromLocale(locale) == LayoutDirection.RTL
+
+    actual val numeralSystem: NumeralSystem
+        get() = numeralSystemFromTag(languageTag)
 
     actual companion object {
         actual fun fromLanguageTag(languageTag: String): Result<KurrencyLocale> {
@@ -53,6 +61,10 @@ actual class KurrencyLocale(val locale: Locale) {
         actual val RUSSIA: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("ru-RU"))
         actual val SAUDI_ARABIA: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("ar-SA"))
         actual val INDIA: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("hi-IN"))
+        actual val ARABIC_EG: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("ar-EG"))
+        actual val HEBREW: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("he-IL"))
+        actual val PERSIAN: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("fa-IR"))
+        actual val URDU: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("ur-PK"))
     }
 
     override fun equals(other: Any?): Boolean {
@@ -64,4 +76,14 @@ actual class KurrencyLocale(val locale: Locale) {
     override fun hashCode(): Int = locale.hashCode()
 
     override fun toString(): String = "KurrencyLocale($languageTag)"
+}
+
+private fun numeralSystemFromTag(tag: String): NumeralSystem {
+    val lang = tag.substringBefore("-").lowercase()
+    return when (lang) {
+        "fa" -> NumeralSystem.PERSIAN
+        "ar" -> NumeralSystem.EASTERN_ARABIC
+        "ur", "ps" -> NumeralSystem.EASTERN_ARABIC
+        else -> NumeralSystem.WESTERN
+    }
 }

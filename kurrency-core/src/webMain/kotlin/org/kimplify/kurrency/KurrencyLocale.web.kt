@@ -18,6 +18,12 @@ actual class KurrencyLocale(actual val languageTag: String) {
     actual val usesCommaAsDecimalSeparator: Boolean
         get() = decimalSeparator == ','
 
+    actual val isRightToLeft: Boolean
+        get() = languageTag.substringBefore("-").lowercase() in RTL_LANGUAGES
+
+    actual val numeralSystem: NumeralSystem
+        get() = numeralSystemFromTag(languageTag)
+
     actual companion object {
         actual fun fromLanguageTag(languageTag: String): Result<KurrencyLocale> {
             return try {
@@ -53,6 +59,10 @@ actual class KurrencyLocale(actual val languageTag: String) {
         actual val RUSSIA: KurrencyLocale = KurrencyLocale("ru-RU")
         actual val SAUDI_ARABIA: KurrencyLocale = KurrencyLocale("ar-SA")
         actual val INDIA: KurrencyLocale = KurrencyLocale("hi-IN")
+        actual val ARABIC_EG: KurrencyLocale = KurrencyLocale("ar-EG")
+        actual val HEBREW: KurrencyLocale = KurrencyLocale("he-IL")
+        actual val PERSIAN: KurrencyLocale = KurrencyLocale("fa-IR")
+        actual val URDU: KurrencyLocale = KurrencyLocale("ur-PK")
 
         private fun isValidLanguageTag(tag: String): Boolean =
             BCP47_LANGUAGE_TAG_REGEX.matches(tag)
@@ -67,4 +77,16 @@ actual class KurrencyLocale(actual val languageTag: String) {
     override fun hashCode(): Int = languageTag.hashCode()
 
     override fun toString(): String = "KurrencyLocale($languageTag)"
+}
+
+private val RTL_LANGUAGES = setOf("ar", "he", "fa", "ur", "dv", "ps", "yi", "ku", "sd")
+
+private fun numeralSystemFromTag(tag: String): NumeralSystem {
+    val lang = tag.substringBefore("-").lowercase()
+    return when (lang) {
+        "fa" -> NumeralSystem.PERSIAN
+        "ar" -> NumeralSystem.EASTERN_ARABIC
+        "ur", "ps" -> NumeralSystem.EASTERN_ARABIC
+        else -> NumeralSystem.WESTERN
+    }
 }

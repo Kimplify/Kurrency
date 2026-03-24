@@ -22,6 +22,12 @@ actual class KurrencyLocale(internal val nsLocale: NSLocale) {
     actual val usesCommaAsDecimalSeparator: Boolean
         get() = decimalSeparator == ','
 
+    actual val isRightToLeft: Boolean
+        get() = languageTag.substringBefore("-").lowercase() in RTL_LANGUAGES
+
+    actual val numeralSystem: NumeralSystem
+        get() = numeralSystemFromTag(languageTag)
+
     actual companion object {
         actual fun fromLanguageTag(languageTag: String): Result<KurrencyLocale> {
             return try {
@@ -62,6 +68,14 @@ actual class KurrencyLocale(internal val nsLocale: NSLocale) {
         actual val SAUDI_ARABIA: KurrencyLocale =
             KurrencyLocale(NSLocale(localeIdentifier = "ar_SA"))
         actual val INDIA: KurrencyLocale = KurrencyLocale(NSLocale(localeIdentifier = "hi_IN"))
+        actual val ARABIC_EG: KurrencyLocale =
+            KurrencyLocale(NSLocale(localeIdentifier = "ar_EG"))
+        actual val HEBREW: KurrencyLocale =
+            KurrencyLocale(NSLocale(localeIdentifier = "he_IL"))
+        actual val PERSIAN: KurrencyLocale =
+            KurrencyLocale(NSLocale(localeIdentifier = "fa_IR"))
+        actual val URDU: KurrencyLocale =
+            KurrencyLocale(NSLocale(localeIdentifier = "ur_PK"))
     }
 
     override fun equals(other: Any?): Boolean {
@@ -73,4 +87,16 @@ actual class KurrencyLocale(internal val nsLocale: NSLocale) {
     override fun hashCode(): Int = nsLocale.localeIdentifier.hashCode()
 
     override fun toString(): String = "KurrencyLocale($languageTag)"
+}
+
+private val RTL_LANGUAGES = setOf("ar", "he", "fa", "ur", "dv", "ps", "yi", "ku", "sd")
+
+private fun numeralSystemFromTag(tag: String): NumeralSystem {
+    val lang = tag.substringBefore("-").lowercase()
+    return when (lang) {
+        "fa" -> NumeralSystem.PERSIAN
+        "ar" -> NumeralSystem.EASTERN_ARABIC
+        "ur", "ps" -> NumeralSystem.EASTERN_ARABIC
+        else -> NumeralSystem.WESTERN
+    }
 }

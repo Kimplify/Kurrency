@@ -64,6 +64,14 @@ class CurrencyVisualTransformation(
     }
 }
 
+/**
+ * Returns true if the character is a Unicode bidirectional mark.
+ * These invisible characters appear in RTL-formatted currency strings
+ * and should be skipped during offset mapping.
+ */
+private fun isBidiMark(c: Char): Boolean =
+    c == '\u200F' || c == '\u200E' || c == '\u061C' || c == '\u200B'
+
 private class ZeroOffsetMapping(private val formattedLength: Int) : OffsetMapping {
     override fun originalToTransformed(offset: Int): Int = formattedLength
     override fun transformedToOriginal(offset: Int): Int = 0

@@ -55,6 +55,21 @@ expect class KurrencyLocale {
      */
     val usesCommaAsDecimalSeparator: Boolean
 
+    /**
+     * Returns true if this locale uses right-to-left text direction.
+     *
+     * RTL locales include Arabic, Hebrew, Persian, Urdu, and others.
+     * This can be used to adjust UI layout and text alignment for currency displays.
+     */
+    val isRightToLeft: Boolean
+
+    /**
+     * The numeral system used by this locale for digit representation.
+     *
+     * @see NumeralSystem
+     */
+    val numeralSystem: NumeralSystem
+
     companion object {
         /**
          * Creates a KurrencyLocale from a BCP 47 language tag.
@@ -113,5 +128,17 @@ expect class KurrencyLocale {
 
         /** Hindi (India) (hi-IN) */
         val INDIA: KurrencyLocale
+
+        /** Arabic (Egypt) (ar-EG) */
+        val ARABIC_EG: KurrencyLocale
+
+        /** Hebrew (Israel) (he-IL) */
+        val HEBREW: KurrencyLocale
+
+        /** Persian (Iran) (fa-IR) */
+        val PERSIAN: KurrencyLocale
+
+        /** Urdu (Pakistan) (ur-PK) */
+        val URDU: KurrencyLocale
     }
 }
