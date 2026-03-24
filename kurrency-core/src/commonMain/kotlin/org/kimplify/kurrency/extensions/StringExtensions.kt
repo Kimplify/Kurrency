@@ -8,8 +8,13 @@ internal fun String.normalizeAmount(locale: KurrencyLocale): String {
     var result = this.replace(groupingSep.toString(), "")
         .replace("\u00A0", "")
         .replace("\u202F", "")
+        .replace("\u066C", "") // Eastern Arabic thousands separator (٬)
     if (decimalSep != '.') {
         result = result.replace(decimalSep, '.')
+    }
+    // Convert Eastern Arabic decimal separator (٫) if not already handled above
+    if (decimalSep != '\u066B') {
+        result = result.replace('\u066B', '.')
     }
     return result.trim()
 }

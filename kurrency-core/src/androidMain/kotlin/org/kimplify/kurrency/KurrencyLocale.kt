@@ -1,7 +1,5 @@
 package org.kimplify.kurrency
 
-import android.text.TextUtils
-import android.util.LayoutDirection
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
@@ -19,7 +17,7 @@ actual class KurrencyLocale(val locale: Locale) {
         get() = decimalSeparator == ','
 
     actual val isRightToLeft: Boolean
-        get() = TextUtils.getLayoutDirectionFromLocale(locale) == LayoutDirection.RTL
+        get() = languageTag.substringBefore("-").lowercase() in RTL_LANGUAGES
 
     actual val numeralSystem: NumeralSystem
         get() = numeralSystemFromTag(languageTag)
@@ -28,11 +26,11 @@ actual class KurrencyLocale(val locale: Locale) {
         actual fun fromLanguageTag(languageTag: String): Result<KurrencyLocale> {
             return try {
                 if (languageTag.isBlank()) {
-                    return Result.failure(IllegalArgumentException("Language tag cannot be blank"))
+                    return Result.failure(KurrencyError.InvalidLocale(languageTag))
                 }
 
                 if (!BCP47_LANGUAGE_TAG_REGEX.matches(languageTag)) {
-                    return Result.failure(IllegalArgumentException("Invalid language tag format: $languageTag"))
+                    return Result.failure(KurrencyError.InvalidLocale(languageTag))
                 }
 
                 val locale = Locale.forLanguageTag(languageTag)
@@ -77,6 +75,8 @@ actual class KurrencyLocale(val locale: Locale) {
 
     override fun toString(): String = "KurrencyLocale($languageTag)"
 }
+
+private val RTL_LANGUAGES = setOf("ar", "he", "iw", "fa", "ur", "dv", "ps", "yi", "ku", "sd")
 
 private fun numeralSystemFromTag(tag: String): NumeralSystem {
     val lang = tag.substringBefore("-").lowercase()

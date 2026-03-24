@@ -8,28 +8,16 @@ import platform.Foundation.NSNumberFormatterCurrencyISOCodeStyle
 import platform.Foundation.NSNumberFormatterCurrencyStyle
 import platform.Foundation.NSNumberFormatterStyle
 import platform.Foundation.commonISOCurrencyCodes
-import platform.Foundation.currentLocale
 
 /**
  * iOS currency formatter implementation.
  *
- * On iOS, the locale provided via [kurrencyLocale] is **not** used for formatting output.
- * Instead, [formattingLocale] always returns [NSLocale.currentLocale], which reflects the
- * user's actual formatting preferences from Settings > General > Language & Region.
- *
- * This is intentional: iOS separates language/region locale from formatting preferences.
- * Users can customize decimal separators, grouping separators, and currency symbol placement
- * independently of their chosen language. Using `NSLocale.currentLocale` respects these
- * customizations, whereas constructing an `NSLocale` from a language tag would only use
- * the locale's defaults and ignore user overrides.
- *
- * See also: [KurrencyLocale] class-level documentation for cross-platform locale behavior.
+ * Uses the locale provided via [kurrencyLocale] for formatting output,
+ * consistent with JVM, Android, and Web platform behavior.
  */
 actual class CurrencyFormatterImpl actual constructor(private val kurrencyLocale: KurrencyLocale) : CurrencyFormat {
 
-    /** Uses the system's current locale to respect user formatting preferences (see class KDoc). */
-    private val formattingLocale: NSLocale
-        get() = NSLocale.currentLocale
+    private val formattingLocale: NSLocale = kurrencyLocale.nsLocale
 
     actual override fun getFractionDigitsOrDefault(currencyCode: String, default: Int): Int {
         return runCatching {

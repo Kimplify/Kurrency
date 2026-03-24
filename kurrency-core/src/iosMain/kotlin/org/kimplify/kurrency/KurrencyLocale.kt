@@ -32,11 +32,11 @@ actual class KurrencyLocale(internal val nsLocale: NSLocale) {
         actual fun fromLanguageTag(languageTag: String): Result<KurrencyLocale> {
             return try {
                 if (languageTag.isBlank()) {
-                    return Result.failure(IllegalArgumentException("Language tag cannot be blank"))
+                    return Result.failure(KurrencyError.InvalidLocale(languageTag))
                 }
 
                 if (!BCP47_LANGUAGE_TAG_REGEX.matches(languageTag)) {
-                    return Result.failure(IllegalArgumentException("Invalid language tag format: $languageTag"))
+                    return Result.failure(KurrencyError.InvalidLocale(languageTag))
                 }
 
                 val localeIdentifier = languageTag.replace("-", "_")

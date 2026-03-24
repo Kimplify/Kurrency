@@ -1,5 +1,7 @@
 package org.kimplify.kurrency
 
+import kotlinx.serialization.Serializable
+
 /**
  * Fine-grained formatting options for currency display.
  *
@@ -37,6 +39,7 @@ package org.kimplify.kurrency
  * @property symbolDisplay What form the currency indicator takes (symbol, ISO code, name, or none).
  * @property zeroDisplay How zero amounts should be rendered.
  */
+@Serializable
 data class CurrencyFormatOptions(
     val symbolPosition: SymbolPosition = SymbolPosition.LOCALE_DEFAULT,
     val grouping: Boolean = true,
@@ -124,6 +127,7 @@ data class CurrencyFormatOptions(
 /**
  * Controls where the currency symbol/code appears relative to the numeric value.
  */
+@Serializable
 enum class SymbolPosition {
     /** Place the symbol before the number (e.g., "$100.00"). */
     LEADING,
@@ -138,6 +142,7 @@ enum class SymbolPosition {
 /**
  * Controls how negative amounts are displayed.
  */
+@Serializable
 enum class NegativeStyle {
     /** Prefix with a minus sign (e.g., "-$100.00"). */
     MINUS_SIGN,
@@ -152,6 +157,7 @@ enum class NegativeStyle {
 /**
  * Controls what form the currency indicator takes.
  */
+@Serializable
 enum class SymbolDisplay {
     /** Use the currency symbol (e.g., "$", "EUR"). */
     SYMBOL,
@@ -169,6 +175,7 @@ enum class SymbolDisplay {
 /**
  * Controls how zero amounts are displayed.
  */
+@Serializable
 enum class ZeroDisplay {
     /** Display the formatted zero (e.g., "$0.00"). */
     SHOW,

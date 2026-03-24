@@ -28,9 +28,9 @@ actual class KurrencyLocale(actual val languageTag: String) {
         actual fun fromLanguageTag(languageTag: String): Result<KurrencyLocale> {
             return try {
                 if (languageTag.isBlank()) {
-                    Result.failure(IllegalArgumentException("Language tag cannot be blank"))
+                    Result.failure(KurrencyError.InvalidLocale(languageTag))
                 } else if (!isValidLanguageTag(languageTag)) {
-                    Result.failure(IllegalArgumentException("Invalid language tag format: $languageTag"))
+                    Result.failure(KurrencyError.InvalidLocale(languageTag))
                 } else {
                     Result.success(KurrencyLocale(languageTag))
                 }

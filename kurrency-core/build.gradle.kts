@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.maven.publish)
 }
 
@@ -59,6 +60,7 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.runtime)
             implementation(libs.cedar.logging)
+            implementation(libs.kotlinx.serialization.json)
         }
 
         val commonTest by getting {

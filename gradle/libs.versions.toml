@@ -28,6 +28,7 @@ runner = "1.7.0"
 core = "1.7.0"
 maven-publish = "0.36.0"
 kotlinx-datetime = "0.7.1"
+kotlinx-serialization = "1.8.1"
 cedar-logging = "0.2.2"
 deci = "0.1.1"
 ui = "1.11.0-alpha04"
@@ -53,6 +54,7 @@ kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinx-datetime" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 cedar-logging = { group = "org.kimplify", name = "cedar-logging", version.ref = "cedar-logging" }
 deci = { group = "org.kimplify", name = "deci", version.ref = "deci" }
 material = { module = "org.jetbrains.compose.material:material", version.ref = "material" }
@@ -68,5 +70,6 @@ androidLibrary = { id = "com.android.library", version.ref = "agp" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
 androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library" }
