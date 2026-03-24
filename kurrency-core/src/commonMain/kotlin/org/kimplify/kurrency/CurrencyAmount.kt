@@ -41,5 +41,22 @@ data class CurrencyAmount(
 
         fun fromMajorUnits(amount: Double, currency: Kurrency): Result<CurrencyAmount> =
             fromMajorUnits(amount.toString(), currency)
+
+        /**
+         * Parses a formatted currency string into a [CurrencyAmount].
+         *
+         * @param formattedText The formatted currency text (e.g., "$1,234.56")
+         * @param currency The [Kurrency] instance for the currency
+         * @param locale The locale used for formatting (determines separator conventions)
+         * @return Result containing CurrencyAmount, or failure with KurrencyError
+         */
+        fun parse(
+            formattedText: String,
+            currency: Kurrency,
+            locale: KurrencyLocale,
+        ): Result<CurrencyAmount> = runCatching {
+            val formatter = CurrencyFormatter(locale)
+            formatter.parseToCurrencyAmountResult(formattedText, currency).getOrThrow()
+        }
     }
 }

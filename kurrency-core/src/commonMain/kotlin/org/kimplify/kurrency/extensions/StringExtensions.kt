@@ -1,5 +1,19 @@
 package org.kimplify.kurrency.extensions
 
+import org.kimplify.kurrency.KurrencyLocale
+
+internal fun String.normalizeAmount(locale: KurrencyLocale): String {
+    val groupingSep = locale.groupingSeparator
+    val decimalSep = locale.decimalSeparator
+    var result = this.replace(groupingSep.toString(), "")
+        .replace("\u00A0", "")
+        .replace("\u202F", "")
+    if (decimalSep != '.') {
+        result = result.replace(decimalSep, '.')
+    }
+    return result.trim()
+}
+
 internal fun String.normalizeAmount(): String {
     val trimmed = this.trim()
     if (trimmed.isEmpty()) return trimmed

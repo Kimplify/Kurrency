@@ -78,9 +78,160 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
         if (!isValidCurrencyCode(currencyCode)) {
             return Result.failure(KurrencyError.InvalidCurrencyCode(currencyCode))
         }
-        val parsed = impl.parseCurrencyAmount(formattedText, currencyCode)
+        val cleanDecimalString = cleanFormattedText(formattedText, currencyCode)
             ?: return Result.failure(KurrencyError.InvalidAmount(formattedText))
+        val parsed = cleanDecimalString.toDoubleOrNull()
+            ?: return Result.failure(KurrencyError.InvalidAmount(formattedText))
+        if (!parsed.isFinite()) {
+            return Result.failure(KurrencyError.InvalidAmount(formattedText))
+        }
         return Result.success(parsed)
+    }
+
+    override fun parseToMinorUnitsResult(formattedText: String, currencyCode: String): Result<Long> {
+        if (!isValidCurrencyCode(currencyCode)) {
+            return Result.failure(KurrencyError.InvalidCurrencyCode(currencyCode))
+        }
+        val fractionDigits = CurrencyMetadata.parse(currencyCode).getOrNull()?.fractionDigits
+            ?: getFractionDigitsOrDefault(currencyCode)
+
+        val cleanDecimalString = cleanFormattedText(formattedText, currencyCode)
+            ?: return Result.failure(KurrencyError.InvalidAmount(formattedText))
+
+        // String-based arithmetic to avoid floating-point precision issues
+        val isNegative = cleanDecimalString.startsWith("-")
+        val absString = if (isNegative) cleanDecimalString.drop(1) else cleanDecimalString
+
+        val parts = absString.split(".")
+        val integerPart = parts[0].ifEmpty { "0" }
+        val fractionalPart = if (parts.size > 1) parts[1] else ""
+
+        // Pad or truncate fractional part to match currency's fractionDigits
+        val adjustedFraction = when {
+            fractionalPart.length == fractionDigits -> fractionalPart
+            fractionalPart.length < fractionDigits -> fractionalPart.padEnd(fractionDigits, '0')
+            else -> fractionalPart.take(fractionDigits)
+        }
+
+        val combined = if (fractionDigits == 0) integerPart else integerPart + adjustedFraction
+        val minorUnits = combined.toLongOrNull()
+            ?: return Result.failure(KurrencyError.InvalidAmount(formattedText))
+
+        return Result.success(if (isNegative) -minorUnits else minorUnits)
+    }
+
+    override fun parseToCurrencyAmountResult(formattedText: String, currency: Kurrency): Result<CurrencyAmount> {
+        return parseToMinorUnitsResult(formattedText, currency.code).map { minorUnits ->
+            CurrencyAmount(minorUnits, currency)
+        }
+    }
+
+    /**
+     * Cleans a formatted currency string into a plain decimal string (e.g., "-1234.56").
+     * Returns null if the input cannot be parsed.
+     *
+     * Pipeline:
+     * 1. Strip bidi marks
+     * 2. Detect accounting notation
+     * 3. Strip currency symbol and ISO code
+     * 4. Detect compact suffixes (English only)
+     * 5. Locale-aware grouping/decimal normalization
+     * 6. Handle negative sign
+     * 7. Validate
+     */
+    private fun cleanFormattedText(formattedText: String, currencyCode: String): String? {
+        if (formattedText.isBlank()) return null
+
+        var text = formattedText
+
+        // Step 1: Strip bidi marks and convert non-Western digits
+        text = text.replace("\u200F", "") // RTL mark
+            .replace("\u200E", "")         // LTR mark
+            .replace("\u061C", "")         // Arabic letter mark
+            .replace("\u200B", "")         // Zero-width space
+            .replace("\uFEFF", "")         // BOM / zero-width no-break space
+
+        // Convert Eastern Arabic / Persian digits to Western
+        text = convertToWesternDigits(text)
+
+        // Step 2: Detect accounting notation (parentheses = negative)
+        val isAccounting = text.trim().startsWith("(") && text.trim().endsWith(")")
+        if (isAccounting) {
+            text = text.trim().drop(1).dropLast(1)
+        }
+
+        // Step 3: Strip currency symbol and ISO code
+        val metadata = CurrencyMetadata.parse(currencyCode).getOrNull()
+        if (metadata != null) {
+            text = text.replace(metadata.symbol, "")
+        }
+        // Also strip common variant currency symbols (e.g., fullwidth yen ￥ vs ¥)
+        text = stripVariantCurrencySymbols(text, currencyCode)
+        // Strip the ISO currency code
+        text = text.replace(currencyCode, "")
+        text = text.replace(currencyCode.uppercase(), "")
+
+        // Step 4: Detect compact suffixes (English only: K, M, B, T)
+        var compactMultiplier: Long? = null
+        val trimmedForCompact = text.trim()
+        val langTag = locale.languageTag.lowercase()
+        val isEnglish = langTag.startsWith("en")
+        if (isEnglish && trimmedForCompact.isNotEmpty()) {
+            val lastChar = trimmedForCompact.last().uppercaseChar()
+            val multiplier = when (lastChar) {
+                'K' -> 1_000L
+                'M' -> 1_000_000L
+                'B' -> 1_000_000_000L
+                'T' -> 1_000_000_000_000L
+                else -> null
+            }
+            if (multiplier != null) {
+                compactMultiplier = multiplier
+                text = trimmedForCompact.dropLast(1)
+            }
+        }
+
+        // Step 5: Locale-aware stripping of grouping separators and decimal normalization
+        text = text.normalizeAmount(locale)
+
+        // Step 6: Handle negative sign (unicode minus and regular minus)
+        var isNegative = isAccounting
+        text = text.replace("\u2212", "-")
+        if (text.contains("-")) {
+            // If accounting notation already set negative, a minus sign cancels it out
+            isNegative = if (isAccounting) !isNegative else true
+            text = text.replace("-", "")
+        }
+
+        // Step 7: Validate
+        text = text.trim()
+        if (text.isEmpty()) return null
+
+        // Validate that remaining text is a valid number
+        if (text.toDoubleOrNull() == null) return null
+
+        // Apply compact multiplier if present
+        if (compactMultiplier != null) {
+            val baseValue = text.toDoubleOrNull() ?: return null
+            if (!baseValue.isFinite()) return null
+            val finalValue = baseValue * compactMultiplier
+            val signedValue = if (isNegative) -finalValue else finalValue
+            return if (signedValue == 0.0) "0" else doubleToPlainString(signedValue)
+        }
+
+        // For non-compact amounts, preserve the string representation to avoid floating-point loss
+        val sign = if (isNegative) "-" else ""
+
+        // Normalize: remove leading zeros from integer part (but keep at least one digit)
+        val parts = text.split(".")
+        val intPart = parts[0].trimStart('0').ifEmpty { "0" }
+        val result = if (parts.size > 1) "$intPart.${parts[1]}" else intPart
+
+        return if (result == "0" || result == "0.0" || result == "0.00") {
+            "0"
+        } else {
+            "$sign$result"
+        }
     }
 
     fun formatMinorUnitsResult(minorUnits: Long, currencyCode: String): Result<String> {
@@ -203,6 +354,85 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
             val normalized = amount.normalizeAmount()
             val doubleValue = normalized.toDoubleOrNull() ?: return false
             return doubleValue.isFinite()
+        }
+
+        /**
+         * Converts Eastern Arabic and Persian digits to Western (ASCII) digits.
+         */
+        private fun convertToWesternDigits(text: String): String {
+            val sb = StringBuilder(text.length)
+            for (ch in text) {
+                when (ch) {
+                    // Eastern Arabic digits (٠-٩) U+0660..U+0669
+                    in '\u0660'..'\u0669' -> sb.append((ch.code - 0x0660 + '0'.code).toChar())
+                    // Persian digits (۰-۹) U+06F0..U+06F9
+                    in '\u06F0'..'\u06F9' -> sb.append((ch.code - 0x06F0 + '0'.code).toChar())
+                    else -> sb.append(ch)
+                }
+            }
+            return sb.toString()
+        }
+
+        /**
+         * Strips variant/alternate currency symbols that differ from CurrencyMetadata.
+         * For example, JVM may produce fullwidth yen ￥ (U+FFE5) instead of ¥ (U+00A5).
+         */
+        private fun stripVariantCurrencySymbols(text: String, currencyCode: String): String {
+            var result = text
+            when (currencyCode.uppercase()) {
+                "JPY", "CNY" -> {
+                    result = result.replace("\uFFE5", "") // Fullwidth yen ￥
+                    result = result.replace("\u00A5", "") // Standard yen ¥
+                }
+                "SAR", "QAR", "OMR" -> {
+                    // Arabic rial symbol - various forms
+                    result = result.replace("ر.س.", "")
+                    result = result.replace("ر.س", "")
+                    result = result.replace("\uFDFC", "") // ﷼
+                }
+            }
+            return result
+        }
+
+        /**
+         * Converts a Double to a plain decimal string without scientific notation.
+         * This is needed because Kotlin's Double.toString() may use scientific notation
+         * for very large or very small numbers.
+         */
+        internal fun doubleToPlainString(value: Double): String {
+            if (value < 0) return "-${doubleToPlainString(-value)}"
+            val str = value.toString()
+            if (!str.contains('E') && !str.contains('e')) {
+                return str
+            }
+
+            // Handle scientific notation
+            val parts = str.lowercase().split('e')
+            val mantissa = parts[0]
+            val exponent = parts[1].toInt()
+
+            val mantissaParts = mantissa.split('.')
+            val intPart = mantissaParts[0].replace("-", "")
+            val fracPart = if (mantissaParts.size > 1) mantissaParts[1] else ""
+            val isNeg = mantissa.startsWith("-")
+
+            val allDigits = intPart + fracPart
+            val currentDecimalPosition = intPart.length
+            val newDecimalPosition = currentDecimalPosition + exponent
+
+            val result = when {
+                newDecimalPosition >= allDigits.length -> {
+                    allDigits + "0".repeat(newDecimalPosition - allDigits.length)
+                }
+                newDecimalPosition <= 0 -> {
+                    "0." + "0".repeat(-newDecimalPosition) + allDigits
+                }
+                else -> {
+                    allDigits.substring(0, newDecimalPosition) + "." + allDigits.substring(newDecimalPosition)
+                }
+            }
+
+            return if (isNeg) "-$result" else result
         }
     }
 }
