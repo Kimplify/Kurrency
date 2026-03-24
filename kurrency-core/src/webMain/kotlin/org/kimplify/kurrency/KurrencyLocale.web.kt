@@ -1,24 +1,12 @@
 package org.kimplify.kurrency
 
 
-/**
- * Gets the browser's default locale from navigator.language
- */
-expect fun getBrowserLocale(): String
+internal expect fun getBrowserLocale(): String
 
-/**
- * Gets the decimal separator for a given locale using Intl.NumberFormat
- */
-expect fun getDecimalSeparatorForLocale(locale: String): String
+internal expect fun getDecimalSeparatorForLocale(locale: String): String
 
-/**
- * Gets the grouping separator for a given locale using Intl.NumberFormat
- */
-expect fun getGroupingSeparatorForLocale(locale: String): String
+internal expect fun getGroupingSeparatorForLocale(locale: String): String
 
-/**
- * Web (JS/WasmJs) implementation of KurrencyLocale using BCP 47 language tags.
- */
 actual class KurrencyLocale(actual val languageTag: String) {
 
     actual val decimalSeparator: Char
@@ -66,10 +54,6 @@ actual class KurrencyLocale(actual val languageTag: String) {
         actual val SAUDI_ARABIA: KurrencyLocale = KurrencyLocale("ar-SA")
         actual val INDIA: KurrencyLocale = KurrencyLocale("hi-IN")
 
-        /**
-         * Basic validation for BCP 47 language tags.
-         * Format: language[-script][-region][-variant]
-         */
         private fun isValidLanguageTag(tag: String): Boolean =
             BCP47_LANGUAGE_TAG_REGEX.matches(tag)
     }

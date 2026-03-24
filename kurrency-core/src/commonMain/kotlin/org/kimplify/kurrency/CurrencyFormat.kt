@@ -1,5 +1,7 @@
 package org.kimplify.kurrency
 
+import kotlin.math.pow
+
 interface CurrencyFormat {
     /**
      * Gets the number of fraction digits for a currency code, returning a default value on error.
@@ -50,4 +52,19 @@ interface CurrencyFormat {
      */
     fun formatIsoCurrencyStyle(amount: String, currency: Kurrency): String =
         formatIsoCurrencyStyle(amount, currency.code)
+
+    fun formatCompactStyle(amount: String, currencyCode: String): String =
+        formatCurrencyStyle(amount, currencyCode)
+
+    fun formatCompactStyle(amount: String, currency: Kurrency): String =
+        formatCompactStyle(amount, currency.code)
+
+    fun parseCurrencyAmount(formattedText: String, currencyCode: String): Double? = null
+
+    fun formatMinorUnits(minorUnits: Long, currencyCode: String): String {
+        val fractionDigits = getFractionDigitsOrDefault(currencyCode)
+        val divisor = 10.0.pow(fractionDigits)
+        val majorAmount = minorUnits / divisor
+        return formatCurrencyStyle(majorAmount.toString(), currencyCode)
+    }
 }

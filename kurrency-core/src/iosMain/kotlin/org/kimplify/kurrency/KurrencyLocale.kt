@@ -6,28 +6,15 @@ import platform.Foundation.NSLocaleGroupingSeparator
 import platform.Foundation.currentLocale
 import platform.Foundation.localeIdentifier
 
-/**
- * iOS implementation of KurrencyLocale using NSLocale.
- */
 actual class KurrencyLocale(internal val nsLocale: NSLocale) {
 
     actual val languageTag: String
         get() = nsLocale.localeIdentifier.replace("_", "-")
 
-    /**
-     * Returns the standard decimal separator for this locale.
-     * This is the locale's default, NOT the user's custom preference.
-     * For formatting with custom preferences, use CurrencyFormatter.
-     */
     actual val decimalSeparator: Char
         get() = (nsLocale.objectForKey(NSLocaleDecimalSeparator) as? String)
             ?.firstOrNull() ?: '.'
 
-    /**
-     * Returns the standard grouping separator for this locale.
-     * This is the locale's default, NOT the user's custom preference.
-     * For formatting with custom preferences, use CurrencyFormatter.
-     */
     actual val groupingSeparator: Char
         get() = (nsLocale.objectForKey(NSLocaleGroupingSeparator) as? String)
             ?.firstOrNull() ?: ','
@@ -58,7 +45,6 @@ actual class KurrencyLocale(internal val nsLocale: NSLocale) {
             return KurrencyLocale(NSLocale.currentLocale)
         }
 
-        // Predefined locales
         actual val US: KurrencyLocale = KurrencyLocale(NSLocale(localeIdentifier = "en_US"))
         actual val UK: KurrencyLocale = KurrencyLocale(NSLocale(localeIdentifier = "en_GB"))
         actual val CANADA: KurrencyLocale = KurrencyLocale(NSLocale(localeIdentifier = "en_CA"))

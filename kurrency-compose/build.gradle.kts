@@ -38,7 +38,6 @@ kotlin {
     }
 
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
@@ -52,15 +51,16 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(project(":kurrency-core"))
-                implementation(compose.runtime)
-                implementation(compose.foundation)
-                implementation(compose.ui)
+                implementation(libs.runtime)
+                implementation(libs.foundation)
+                implementation(libs.ui)
             }
         }
 
         val commonTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
+                implementation(libs.ui.test)
             }
         }
 

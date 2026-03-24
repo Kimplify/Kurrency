@@ -1,11 +1,13 @@
 package org.kimplify.kurrency
 
-import org.kimplify.kurrency.extensions.replaceCommaWithDot
+import org.kimplify.kurrency.extensions.normalizeAmount
 
 expect class CurrencyFormatterImpl(kurrencyLocale: KurrencyLocale = KurrencyLocale.systemLocale()) : CurrencyFormat {
     override fun getFractionDigitsOrDefault(currencyCode: String, default: Int): Int
     override fun formatCurrencyStyle(amount: String, currencyCode: String): String
     override fun formatIsoCurrencyStyle(amount: String, currencyCode: String): String
+    override fun formatCompactStyle(amount: String, currencyCode: String): String
+    override fun parseCurrencyAmount(formattedText: String, currencyCode: String): Double?
 }
 
 expect fun isValidCurrency(currencyCode: String): Boolean
@@ -63,6 +65,31 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
     override fun formatIsoCurrencyStyle(amount: String, currencyCode: String): String =
         formatIsoCurrencyStyleResult(amount, currencyCode).getOrElse { amount }
 
+    override fun formatCompactStyle(amount: String, currencyCode: String): String =
+        formatCompactStyleResult(amount, currencyCode).getOrElse { amount }
+
+    fun formatCompactStyleResult(amount: String, currencyCode: String): Result<String> {
+        return formatWithValidation(amount, currencyCode) {
+            Result.success(impl.formatCompactStyle(it, currencyCode))
+        }
+    }
+
+    fun parseCurrencyAmountResult(formattedText: String, currencyCode: String): Result<Double> {
+        if (!isValidCurrencyCode(currencyCode)) {
+            return Result.failure(KurrencyError.InvalidCurrencyCode(currencyCode))
+        }
+        val parsed = impl.parseCurrencyAmount(formattedText, currencyCode)
+            ?: return Result.failure(KurrencyError.InvalidAmount(formattedText))
+        return Result.success(parsed)
+    }
+
+    fun formatMinorUnitsResult(minorUnits: Long, currencyCode: String): Result<String> {
+        if (!isValidCurrencyCode(currencyCode)) {
+            return Result.failure(KurrencyError.InvalidCurrencyCode(currencyCode))
+        }
+        return Result.success(impl.formatMinorUnits(minorUnits, currencyCode))
+    }
+
     /**
      * Formats an amount in currency style using this formatter's locale.
      *
@@ -114,12 +141,21 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
             }
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is CurrencyFormatter) return false
+        return locale.languageTag == other.locale.languageTag
+    }
+
+    override fun hashCode(): Int = locale.languageTag.hashCode()
+
     companion object Companion {
         private const val DEFAULT_FRACTION_DIGITS = 2
         private val defaultFormatter: CurrencyFormat by lazy {
             KurrencyLog.d { "Initializing default CurrencyFormatter" }
             CurrencyFormatterImpl()
         }
+
 
         /**
          * Gets the fraction digits for a currency code.
@@ -133,9 +169,12 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
                 return Result.failure(throwable)
             }
 
+            CurrencyMetadata.parse(kurrency.code).getOrNull()?.let {
+                return Result.success(it.fractionDigits)
+            }
+
             return runCatching {
                 val normalizedCode = kurrency.code.uppercase()
-                KurrencyLog.d { "Getting fraction digits for: $normalizedCode" }
                 defaultFormatter.getFractionDigitsOrDefault(normalizedCode, DEFAULT_FRACTION_DIGITS)
             }.fold(
                 onSuccess = { Result.success(it) },
@@ -157,9 +196,13 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
             getFractionDigits(currencyCode).getOrDefault(DEFAULT_FRACTION_DIGITS)
 
         private fun isValidCurrencyCode(code: String): Boolean =
-            code.length == 3 && code.all { it.isLetter() }
+            code.length == 3 && code.all { it.isLetter() } && isValidCurrency(code)
 
-        private fun isValidAmount(amount: String): Boolean =
-            amount.isNotBlank() && amount.replaceCommaWithDot().toDoubleOrNull() != null
+        private fun isValidAmount(amount: String): Boolean {
+            if (amount.isBlank()) return false
+            val normalized = amount.normalizeAmount()
+            val doubleValue = normalized.toDoubleOrNull() ?: return false
+            return doubleValue.isFinite()
+        }
     }
 }

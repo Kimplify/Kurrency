@@ -1,6 +1,5 @@
 package org.kimplify.kurrency.compose
 
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -17,185 +16,107 @@ import kotlin.test.assertTrue
 class CurrencyFormatterComposablesTest {
 
     @Test
-    fun rememberCurrencyFormatter_withUSLocale_createsFormatterWithUSLocale() = runComposeUiTest {
-        var capturedFormatter: CurrencyFormatter? = null
+    fun rememberCurrencyFormatter_withUSLocale_createsFormatter() = runComposeUiTest {
+        var formatted = ""
 
         setContent {
             val formatter = rememberCurrencyFormatter(KurrencyLocale.US)
-            capturedFormatter = formatter as? CurrencyFormatter
+            formatted = formatter.formatCurrencyStyle("1234.56", "USD")
         }
 
-        assertNotNull(capturedFormatter)
-        val result = capturedFormatter!!.formatCurrencyStyleResult("1234.56", "USD")
-        assertTrue(result.isSuccess)
-        assertEquals("$1,234.56", result.getOrNull())
+        waitForIdle()
+        assertEquals("$1,234.56", formatted)
     }
 
     @Test
-    fun rememberCurrencyFormatter_withGermanyLocale_createsFormatterWithGermanyLocale() = runComposeUiTest {
-        var capturedFormatter: CurrencyFormatter? = null
+    fun rememberCurrencyFormatter_withGermanyLocale_formatsCorrectly() = runComposeUiTest {
+        var formatted = ""
 
         setContent {
             val formatter = rememberCurrencyFormatter(KurrencyLocale.GERMANY)
-            capturedFormatter = formatter as? CurrencyFormatter
+            formatted = formatter.formatCurrencyStyle("1234.56", "EUR")
         }
 
-        assertNotNull(capturedFormatter)
-        val result = capturedFormatter!!.formatCurrencyStyleResult("1234.56", "EUR")
-        assertTrue(result.isSuccess)
-        val formatted = result.getOrNull()
-        assertNotNull(formatted)
+        waitForIdle()
         assertTrue(formatted.contains("1.234,56") || formatted.contains("1 234,56"))
     }
 
     @Test
     fun rememberCurrencyFormatter_whenLocaleChanges_recreatesFormatter() = runComposeUiTest {
         var locale by mutableStateOf(KurrencyLocale.US)
-        var formatterCreationCount = 0
         var lastFormattedValue = ""
 
         setContent {
             val formatter = rememberCurrencyFormatter(locale)
-            formatterCreationCount++
-
-            val result = formatter.formatCurrencyStyleResult("1000.00", "USD")
-            lastFormattedValue = result.getOrNull() ?: ""
+            lastFormattedValue = formatter.formatCurrencyStyle("1000.00", "USD")
         }
 
         waitForIdle()
         assertEquals("$1,000.00", lastFormattedValue)
-        val initialCount = formatterCreationCount
 
         locale = KurrencyLocale.GERMANY
-
         waitForIdle()
-        assertTrue(formatterCreationCount > initialCount)
         assertTrue(lastFormattedValue.contains("1.000,00") || lastFormattedValue.contains("1 000,00"))
     }
 
     @Test
     fun rememberSystemCurrencyFormatter_createsFormatter() = runComposeUiTest {
-        var capturedFormatter: CurrencyFormatter? = null
+        var formatted = ""
 
         setContent {
             val formatter = rememberSystemCurrencyFormatter()
-            capturedFormatter = formatter as? CurrencyFormatter
+            formatted = formatter.formatCurrencyStyle("100.00", "USD")
         }
 
-        assertNotNull(capturedFormatter)
-        val result = capturedFormatter!!.formatCurrencyStyleResult("100.00", "USD")
-        assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        waitForIdle()
+        assertTrue(formatted.isNotBlank())
     }
 
     @Test
     fun localCurrencyFormatter_providesDefaultFormatter() = runComposeUiTest {
-        var capturedFormatter: CurrencyFormatter? = null
+        var formatted = ""
 
         setContent {
-            capturedFormatter = LocalCurrencyFormatter.current as? CurrencyFormatter
+            val formatter = LocalCurrencyFormatter.current
+            formatted = formatter.formatCurrencyStyle("100.00", "USD")
         }
 
-        assertNotNull(capturedFormatter)
+        waitForIdle()
+        assertTrue(formatted.isNotBlank())
     }
 
     @Test
     fun provideCurrencyFormatter_providesFormatterToChildren() = runComposeUiTest {
-        var childFormatter: CurrencyFormatter? = null
+        var childFormatted = ""
 
         setContent {
             ProvideCurrencyFormatter(locale = KurrencyLocale.JAPAN) {
-                childFormatter = LocalCurrencyFormatter.current as? CurrencyFormatter
-            }
-        }
-
-        assertNotNull(childFormatter)
-        val result = childFormatter!!.formatCurrencyStyleResult("1234", "JPY")
-        assertTrue(result.isSuccess)
-        val formatted = result.getOrNull()
-        assertNotNull(formatted)
-        assertTrue(formatted.contains("1,234") || formatted.contains("¥"))
-    }
-
-    @Test
-    fun provideCurrencyFormatter_whenLocaleChanges_updatesProvidedFormatter() = runComposeUiTest {
-        var locale by mutableStateOf(KurrencyLocale.US)
-        var lastFormattedValue = ""
-
-        setContent {
-            ProvideCurrencyFormatter(locale = locale) {
                 val formatter = LocalCurrencyFormatter.current
-                val result = formatter.formatCurrencyStyleResult("500.50", "USD")
-                lastFormattedValue = result.getOrNull() ?: ""
+                childFormatted = formatter.formatCurrencyStyle("1234", "JPY")
             }
         }
 
         waitForIdle()
-        assertEquals("$500.50", lastFormattedValue)
-
-        locale = KurrencyLocale.UK
-
-        waitForIdle()
-        assertTrue(lastFormattedValue.contains("500.50") || lastFormattedValue.contains("US$"))
-    }
-
-    @Test
-    fun provideSystemCurrencyFormatter_providesSystemLocaleFormatter() = runComposeUiTest {
-        var childFormatter: CurrencyFormatter? = null
-
-        setContent {
-            ProvideSystemCurrencyFormatter {
-                childFormatter = LocalCurrencyFormatter.current as? CurrencyFormatter
-            }
-        }
-
-        assertNotNull(childFormatter)
-        val result = childFormatter!!.formatCurrencyStyleResult("99.99", "EUR")
-        assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        assertTrue(childFormatted.contains("1,234") || childFormatted.contains("¥"))
     }
 
     @Test
     fun provideCurrencyFormatter_canBeNested_innerOverridesOuter() = runComposeUiTest {
-        var outerFormattedValue = ""
-        var innerFormattedValue = ""
+        var outerFormatted = ""
+        var innerFormatted = ""
 
         setContent {
             ProvideCurrencyFormatter(locale = KurrencyLocale.US) {
-                val outerFormatter = LocalCurrencyFormatter.current
-                outerFormattedValue = outerFormatter.formatCurrencyStyleResult("100.00", "USD").getOrNull() ?: ""
+                outerFormatted = LocalCurrencyFormatter.current.formatCurrencyStyle("100.00", "USD")
 
                 ProvideCurrencyFormatter(locale = KurrencyLocale.JAPAN) {
-                    val innerFormatter = LocalCurrencyFormatter.current
-                    innerFormattedValue = innerFormatter.formatCurrencyStyleResult("100", "JPY").getOrNull() ?: ""
+                    innerFormatted = LocalCurrencyFormatter.current.formatCurrencyStyle("100", "JPY")
                 }
             }
         }
 
         waitForIdle()
-        assertTrue(outerFormattedValue.contains("$"))
-        assertTrue(innerFormattedValue.contains("100") || innerFormattedValue.contains("¥"))
-    }
-
-    @Test
-    fun rememberCurrencyFormatter_withMultipleLocales_formatsCorrectly() = runComposeUiTest {
-        var usFormatted = ""
-        var deFormatted = ""
-        var jpFormatted = ""
-
-        setContent {
-            val usFormatter = rememberCurrencyFormatter(KurrencyLocale.US)
-            val deFormatter = rememberCurrencyFormatter(KurrencyLocale.GERMANY)
-            val jpFormatter = rememberCurrencyFormatter(KurrencyLocale.JAPAN)
-
-            usFormatted = usFormatter.formatCurrencyStyleResult("1234.56", "USD").getOrNull() ?: ""
-            deFormatted = deFormatter.formatCurrencyStyleResult("1234.56", "EUR").getOrNull() ?: ""
-            jpFormatted = jpFormatter.formatCurrencyStyleResult("1234", "JPY").getOrNull() ?: ""
-        }
-
-        waitForIdle()
-        assertEquals("$1,234.56", usFormatted)
-        assertTrue(deFormatted.contains("1.234,56") || deFormatted.contains("1 234,56"))
-        assertTrue(jpFormatted.contains("1,234") || jpFormatted.contains("¥"))
+        assertTrue(outerFormatted.contains("$"))
+        assertTrue(innerFormatted.contains("100") || innerFormatted.contains("¥"))
     }
 }

@@ -14,7 +14,6 @@ kotlin {
 
     androidTarget()
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
@@ -60,11 +59,11 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material)
-            implementation(compose.material3)
-            implementation(compose.components.uiToolingPreview)
+            implementation(libs.runtime)
+            implementation(libs.foundation)
+            implementation(libs.material)
+            implementation(libs.material3)
+            implementation(libs.ui.tooling.preview)
             implementation(kotlin("test"))
             api(project(":kurrency-core"))
             api(project(":kurrency-compose"))

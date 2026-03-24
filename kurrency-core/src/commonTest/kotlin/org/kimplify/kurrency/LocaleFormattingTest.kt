@@ -31,6 +31,14 @@ class LocaleFormattingTest {
             val formatted = result.getOrNull()
             assertNotNull(formatted, "Formatted value should not be null for ${locale.languageTag}")
             assertTrue(formatted.isNotBlank(), "Formatted value should not be blank")
+            assertTrue(
+                formatted.any { it.isDigit() },
+                "Formatted value should contain digits for ${locale.languageTag}: $formatted"
+            )
+            assertTrue(
+                formatted.contains("1") && formatted.contains("2") && formatted.contains("3"),
+                "Formatted value should contain digits from 123x for ${locale.languageTag}: $formatted"
+            )
         }
     }
 
@@ -57,7 +65,10 @@ class LocaleFormattingTest {
 
             val formatted = result.getOrNull()
             assertNotNull(formatted)
-            assertTrue(formatted.contains("1") || formatted.contains("2"))
+            assertTrue(
+                formatted.contains("1") && formatted.contains("2") && formatted.contains("3"),
+                "Formatted EUR value should contain digits from 123x for ${locale.languageTag}: $formatted"
+            )
         }
     }
 
@@ -83,10 +94,9 @@ class LocaleFormattingTest {
 
             val formatted = result.getOrNull()
             assertNotNull(formatted)
-            // ISO format should include the currency code
             assertTrue(
-                formatted.contains("USD") || formatted.contains("usd"),
-                "ISO format should contain currency code"
+                formatted.contains("USD"),
+                "ISO format should contain currency code USD for ${locale.languageTag}: $formatted"
             )
         }
     }
@@ -95,29 +105,11 @@ class LocaleFormattingTest {
     fun testFractionDigits_consistentAcrossLocales() {
         val currencyCode = "USD"
 
-        val locales = listOf(
-            KurrencyLocale.US,
-            KurrencyLocale.UK,
-            KurrencyLocale.GERMANY,
-            KurrencyLocale.JAPAN
-        )
+        val result = CurrencyFormatter.getFractionDigits(currencyCode)
 
-        val fractionDigits = mutableSetOf<Int>()
-
-        locales.forEach { _ ->
-            val result = CurrencyFormatter.getFractionDigits(currencyCode)
-
-            assertTrue(result.isSuccess, "Should get fraction digits for $currencyCode")
-            result.getOrNull()?.let { fractionDigits.add(it) }
-        }
-
-        // USD should have consistent fraction digits (2) across all locales
+        assertTrue(result.isSuccess, "Should get fraction digits for $currencyCode")
         assertTrue(
-            fractionDigits.size == 1,
-            "USD should have consistent fraction digits across locales"
-        )
-        assertTrue(
-            fractionDigits.first() == 2,
+            result.getOrNull() == 2,
             "USD should have 2 fraction digits"
         )
     }
@@ -128,7 +120,9 @@ class LocaleFormattingTest {
         val result = formatter.formatCurrencyStyleResult("100.50", "EUR")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.any { it.isDigit() })
     }
 
     @Test
@@ -137,7 +131,9 @@ class LocaleFormattingTest {
         val result = formatter.formatCurrencyStyleResult("100.50", "USD")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.any { it.isDigit() })
     }
 
     @Test
@@ -146,6 +142,21 @@ class LocaleFormattingTest {
         val result = formatter.formatCurrencyStyleResult("100.50", "USD")
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.any { it.isDigit() })
+    }
+
+    @Test
+    fun testIsoFormattingContainsCurrencyCodeForAllLocales() {
+        val locales = listOf(KurrencyLocale.US, KurrencyLocale.GERMANY, KurrencyLocale.JAPAN)
+        locales.forEach { locale ->
+            val formatter = CurrencyFormatter(locale)
+            val result = formatter.formatIsoCurrencyStyle("1234.56", "EUR")
+            assertTrue(
+                result.contains("EUR"),
+                "ISO format for ${locale.languageTag} should contain EUR: $result"
+            )
+        }
     }
 }

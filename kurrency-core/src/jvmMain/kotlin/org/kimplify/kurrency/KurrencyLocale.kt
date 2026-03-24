@@ -3,9 +3,6 @@ package org.kimplify.kurrency
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
-/**
- * JVM implementation of KurrencyLocale using java.util.Locale.
- */
 actual class KurrencyLocale(val locale: Locale) {
     actual val languageTag: String
         get() = locale.toLanguageTag()

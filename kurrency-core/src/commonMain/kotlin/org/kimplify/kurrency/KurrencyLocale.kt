@@ -6,6 +6,18 @@ package org.kimplify.kurrency
  * This class wraps platform-specific locale implementations and provides
  * a consistent API for locale handling in Kurrency.
  *
+ * ## Platform Behavior Differences
+ *
+ * On **Android/JVM/Web**, the locale provided to [CurrencyFormatter] directly controls
+ * formatting output (decimal separators, grouping, symbol placement, etc.).
+ *
+ * On **iOS**, the locale and formatting locale are separate concepts. iOS users can customize
+ * formatting preferences (decimal/grouping separators) in Settings independently of their
+ * language/region. [CurrencyFormatter] on iOS always uses `NSLocale.currentLocale` for
+ * formatting to respect these custom preferences, regardless of which [KurrencyLocale] is
+ * provided. The properties on this class ([decimalSeparator], [groupingSeparator]) return
+ * the locale's standard defaults, not the user's custom overrides.
+ *
  * @property languageTag The BCP 47 language tag (e.g., "en-US", "de-DE", "ja-JP")
  * @property platformLocale The underlying platform-specific locale object
  *   - Android/JVM: `java.util.Locale`
