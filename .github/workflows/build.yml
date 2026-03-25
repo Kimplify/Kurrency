@@ -75,5 +75,5 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
 
       - name: Build library
-        run: ./gradlew build -x :kurrency-compose:jsTest -x :kurrency-compose:jsBrowserTest -x :kurrency-compose:jsNodeTest -x :kurrency-compose:wasmJsTest -x :kurrency-compose:wasmJsBrowserTest --no-configuration-cache
+        run: ./gradlew assemble --no-configuration-cache
 
