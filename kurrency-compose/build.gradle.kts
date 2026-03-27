@@ -1,6 +1,5 @@
 @file:OptIn(ExperimentalWasmDsl::class)
 
-import com.android.build.api.dsl.androidLibrary
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -38,7 +37,6 @@ kotlin {
     }
 
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
@@ -49,25 +47,24 @@ kotlin {
     }
 
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-                api(project(":kurrency-core"))
-                implementation(compose.runtime)
-                implementation(compose.foundation)
-                implementation(compose.ui)
-            }
+        commonMain.dependencies {
+            api(project(":kurrency-core"))
+            implementation(libs.runtime)
+            implementation(libs.foundation)
+            implementation(libs.ui)
         }
 
-        val commonTest by getting {
-            dependencies {
-                implementation(libs.kotlin.test)
-            }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.ui.test)
         }
 
-        val androidMain by getting {
-            dependencies {
-                implementation(libs.androidx.core.ktx)
-            }
+        jvmTest.dependencies {
+            implementation(compose.desktop.currentOs)
+        }
+
+        androidMain.dependencies {
+            implementation(libs.androidx.core.ktx)
         }
     }
 }

@@ -10,31 +10,13 @@ class Kurrency private constructor(val code: String) {
         Cedar.tag("Kurrency").d("Currency created: code=$code")
     }
 
-    /**
-     * Gets the fraction digits for this currency.
-     * Fraction digits are defined by ISO 4217 and do not vary by locale.
-     *
-     * @return Result containing the number of fraction digits, or failure if currency is invalid
-     */
     val fractionDigits: Result<Int>
         get() = CurrencyFormatter.getFractionDigits(code)
 
-    /**
-     * Gets the fraction digits for this currency, or returns default value.
-     *
-     * @return The number of fraction digits, or 2 if there's an error
-     */
     val fractionDigitsOrDefault: Int
         get() = CurrencyFormatter.getFractionDigitsOrDefault(code)
 
     companion object Companion {
-        /**
-         * Creates a Currency from a currency code.
-         * Note: This validates the currency code exists before creating the Currency instance.
-         *
-         * @param code The ISO 4217 currency code (e.g., "USD", "EUR")
-         * @return Result containing the Currency, or failure if the code is invalid
-         */
         fun fromCode(code: String): Result<Kurrency> {
             return if (isValid(code)) {
                 Result.success(Kurrency(code))
@@ -50,57 +32,22 @@ class Kurrency private constructor(val code: String) {
             return isValidCurrency(code)
         }
 
-        // Convenience properties for popular currencies
-        // These provide easy access to commonly used currencies without having to construct them manually.
-        // For any other ISO 4217 currency, use Currency.fromCode(code)
-
-        /** US Dollar - World reserve currency */
-        val USD: Kurrency get() = Kurrency("USD")
-
-        /** Euro - Second most traded currency */
-        val EUR: Kurrency get() = Kurrency("EUR")
-
-        /** British Pound Sterling */
-        val GBP: Kurrency get() = Kurrency("GBP")
-
-        /** Japanese Yen */
-        val JPY: Kurrency get() = Kurrency("JPY")
-
-        /** Australian Dollar */
-        val AUD: Kurrency get() = Kurrency("AUD")
-
-        /** Canadian Dollar */
-        val CAD: Kurrency get() = Kurrency("CAD")
-
-        /** Swiss Franc */
-        val CHF: Kurrency get() = Kurrency("CHF")
-
-        /** Chinese Yuan */
-        val CNY: Kurrency get() = Kurrency("CNY")
-
-        /** Indian Rupee */
-        val INR: Kurrency get() = Kurrency("INR")
-
-        /** South Korean Won */
-        val KRW: Kurrency get() = Kurrency("KRW")
-
-        /** Mexican Peso */
-        val MXN: Kurrency get() = Kurrency("MXN")
-
-        /** Brazilian Real */
-        val BRL: Kurrency get() = Kurrency("BRL")
-
-        /** South African Rand */
-        val ZAR: Kurrency get() = Kurrency("ZAR")
-
-        /** New Zealand Dollar */
-        val NZD: Kurrency get() = Kurrency("NZD")
-
-        /** Singapore Dollar */
-        val SGD: Kurrency get() = Kurrency("SGD")
-
-        /** Hong Kong Dollar */
-        val HKD: Kurrency get() = Kurrency("HKD")
+        val USD: Kurrency by lazy { Kurrency("USD") }
+        val EUR: Kurrency by lazy { Kurrency("EUR") }
+        val GBP: Kurrency by lazy { Kurrency("GBP") }
+        val JPY: Kurrency by lazy { Kurrency("JPY") }
+        val AUD: Kurrency by lazy { Kurrency("AUD") }
+        val CAD: Kurrency by lazy { Kurrency("CAD") }
+        val CHF: Kurrency by lazy { Kurrency("CHF") }
+        val CNY: Kurrency by lazy { Kurrency("CNY") }
+        val INR: Kurrency by lazy { Kurrency("INR") }
+        val KRW: Kurrency by lazy { Kurrency("KRW") }
+        val MXN: Kurrency by lazy { Kurrency("MXN") }
+        val BRL: Kurrency by lazy { Kurrency("BRL") }
+        val ZAR: Kurrency by lazy { Kurrency("ZAR") }
+        val NZD: Kurrency by lazy { Kurrency("NZD") }
+        val SGD: Kurrency by lazy { Kurrency("SGD") }
+        val HKD: Kurrency by lazy { Kurrency("HKD") }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -123,6 +70,14 @@ class Kurrency private constructor(val code: String) {
         return when (style) {
             CurrencyStyle.Standard -> formatter.formatCurrencyStyleResult(amount, code)
             CurrencyStyle.Iso -> formatter.formatIsoCurrencyStyleResult(amount, code)
+            CurrencyStyle.Accounting -> formatter.formatCurrencyStyleResult(amount, code).map { formatted ->
+                if (formatted.contains("-") || amount.trimStart().startsWith("-")) {
+                    val withoutMinus = formatted.replace("-", "").replace("\u2212", "").trim()
+                    "($withoutMinus)"
+                } else {
+                    formatted
+                }
+            }
         }
     }
     
@@ -143,6 +98,66 @@ class Kurrency private constructor(val code: String) {
         style: CurrencyStyle = CurrencyStyle.Standard,
         locale: KurrencyLocale = KurrencyLocale.systemLocale()
     ): String = formatAmount(amount, style, locale).getOrDefault("")
+
+    /**
+     * Formats an amount using fine-grained [CurrencyFormatOptions].
+     *
+     * ```kotlin
+     * val opts = CurrencyFormatOptions {
+     *     symbolDisplay = SymbolDisplay.ISO_CODE
+     *     negativeStyle = NegativeStyle.PARENTHESES
+     * }
+     * Kurrency.USD.formatAmountWithOptions("1234.56", opts)
+     * ```
+     *
+     * @param amount The amount to format
+     * @param options The formatting options to apply
+     * @param locale The locale for number formatting (defaults to system locale)
+     * @return Result containing the formatted string, or failure if validation fails
+     */
+    fun formatAmountWithOptions(
+        amount: String,
+        options: CurrencyFormatOptions,
+        locale: KurrencyLocale = KurrencyLocale.systemLocale(),
+    ): Result<String> {
+        val formatter = CurrencyFormatter(locale)
+        return formatter.formatWithOptions(amount, code, options)
+    }
+
+    /**
+     * Formats a Double amount using fine-grained [CurrencyFormatOptions].
+     *
+     * @param amount The amount to format
+     * @param options The formatting options to apply
+     * @param locale The locale for number formatting (defaults to system locale)
+     * @return Result containing the formatted string, or failure if validation fails
+     */
+    fun formatAmountWithOptions(
+        amount: Double,
+        options: CurrencyFormatOptions,
+        locale: KurrencyLocale = KurrencyLocale.systemLocale(),
+    ): Result<String> = formatAmountWithOptions(amount.toString(), options, locale)
+
+    fun formatAmountCompact(
+        amount: String,
+        locale: KurrencyLocale = KurrencyLocale.systemLocale(),
+    ): Result<String> {
+        val formatter = CurrencyFormatter(locale)
+        return formatter.formatCompactStyleResult(amount, code)
+    }
+
+    fun formatAmountCompact(
+        amount: Double,
+        locale: KurrencyLocale = KurrencyLocale.systemLocale(),
+    ): Result<String> = formatAmountCompact(amount.toString(), locale)
+
+    fun formatMinorUnits(
+        minorUnits: Long,
+        locale: KurrencyLocale = KurrencyLocale.systemLocale(),
+    ): Result<String> {
+        val formatter = CurrencyFormatter(locale)
+        return formatter.formatMinorUnitsResult(minorUnits, code)
+    }
 
     fun format(
         amount: String,
@@ -170,5 +185,6 @@ class FormattedCurrencyDelegate(
 
 enum class CurrencyStyle {
     Standard,
-    Iso
+    Iso,
+    Accounting,
 }

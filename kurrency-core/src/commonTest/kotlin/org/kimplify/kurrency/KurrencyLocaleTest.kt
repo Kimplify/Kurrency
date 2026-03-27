@@ -50,33 +50,31 @@ class KurrencyLocaleTest {
     fun testSystemLocale() {
         val systemLocale = KurrencyLocale.systemLocale()
         assertNotNull(systemLocale)
-        assertTrue(systemLocale.languageTag.isNotBlank())
+        val tag = systemLocale.languageTag
+        assertTrue(tag.isNotBlank())
+        assertTrue(
+            tag.contains("-") || tag.length >= 2,
+            "System locale tag should match BCP47 pattern: $tag"
+        )
     }
 
     @Test
     fun testPredefinedLocales() {
-        val locales = listOf(
-            KurrencyLocale.US,
-            KurrencyLocale.UK,
-            KurrencyLocale.CANADA,
-            KurrencyLocale.CANADA_FRENCH,
-            KurrencyLocale.GERMANY,
-            KurrencyLocale.FRANCE,
-            KurrencyLocale.ITALY,
-            KurrencyLocale.SPAIN,
-            KurrencyLocale.JAPAN,
-            KurrencyLocale.CHINA,
-            KurrencyLocale.KOREA,
-            KurrencyLocale.BRAZIL,
-            KurrencyLocale.RUSSIA,
-            KurrencyLocale.SAUDI_ARABIA,
-            KurrencyLocale.INDIA
-        )
-
-        locales.forEach { locale ->
-            assertNotNull(locale)
-            assertTrue(locale.languageTag.isNotBlank())
-        }
+        assertEquals("en-US", KurrencyLocale.US.languageTag)
+        assertEquals("en-GB", KurrencyLocale.UK.languageTag)
+        assertEquals("en-CA", KurrencyLocale.CANADA.languageTag)
+        assertEquals("fr-CA", KurrencyLocale.CANADA_FRENCH.languageTag)
+        assertEquals("de-DE", KurrencyLocale.GERMANY.languageTag)
+        assertEquals("fr-FR", KurrencyLocale.FRANCE.languageTag)
+        assertEquals("it-IT", KurrencyLocale.ITALY.languageTag)
+        assertEquals("es-ES", KurrencyLocale.SPAIN.languageTag)
+        assertEquals("ja-JP", KurrencyLocale.JAPAN.languageTag)
+        assertEquals("zh-CN", KurrencyLocale.CHINA.languageTag)
+        assertEquals("ko-KR", KurrencyLocale.KOREA.languageTag)
+        assertEquals("pt-BR", KurrencyLocale.BRAZIL.languageTag)
+        assertEquals("ru-RU", KurrencyLocale.RUSSIA.languageTag)
+        assertEquals("ar-SA", KurrencyLocale.SAUDI_ARABIA.languageTag)
+        assertEquals("hi-IN", KurrencyLocale.INDIA.languageTag)
     }
 
     @Test

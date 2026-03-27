@@ -38,6 +38,9 @@ class CurrencyStateTest {
 
         assertNotNull(formatted)
         assertTrue(formatted.isNotEmpty())
+        assertTrue(
+            formatted.contains("1234") || formatted.contains("1,234") || formatted.contains("1.234")
+        )
     }
 
     @Test
@@ -47,6 +50,7 @@ class CurrencyStateTest {
 
         assertNotNull(formatted)
         assertTrue(formatted.isNotEmpty())
+        assertTrue(formatted.contains("USD"))
     }
 
     @Test
@@ -55,7 +59,9 @@ class CurrencyStateTest {
         val result = state.formattedAmountResult
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.any { it.isDigit() })
     }
 
     @Test
@@ -64,7 +70,9 @@ class CurrencyStateTest {
         val result = state.formattedAmountIsoResult
 
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        val formatted = result.getOrNull()
+        assertNotNull(formatted)
+        assertTrue(formatted.any { it.isDigit() })
     }
 
     @Test
@@ -108,10 +116,11 @@ class CurrencyStateTest {
         val state = CurrencyState("USD", "100.00")
         val beforeUpdate = state.formattedAmount
 
-        state.updateAmount("200.00")
+        state.updateAmount("500.00")
         val afterUpdate = state.formattedAmount
 
         assertNotEquals(beforeUpdate, afterUpdate)
+        assertTrue(afterUpdate.contains("500"))
     }
 
     @Test
@@ -119,10 +128,12 @@ class CurrencyStateTest {
         val state = CurrencyState("USD", "100.00")
         val beforeUpdate = state.formattedAmount
 
+        assertTrue(beforeUpdate.contains("$") || beforeUpdate.contains("USD"))
+
         state.updateCurrency("EUR")
         val afterUpdate = state.formattedAmount
 
-        assertNotEquals(beforeUpdate, afterUpdate)
+        assertTrue(afterUpdate.contains("EUR") || afterUpdate.contains("\u20AC"))
     }
 
     @Test
@@ -162,6 +173,7 @@ class CurrencyStateTest {
 
         assertNotNull(formatted)
         assertTrue(formatted.isNotEmpty())
+        assertTrue(formatted.contains("0"))
     }
 
     @Test
@@ -171,6 +183,8 @@ class CurrencyStateTest {
 
         assertNotNull(formatted)
         assertTrue(formatted.isNotEmpty())
+        assertTrue(formatted.contains("100"))
+        assertTrue(formatted.contains("-") || formatted.contains("("))
     }
 
     @Test
@@ -190,17 +204,20 @@ class CurrencyStateTest {
     @Test
     fun testFormattedAmountDelegateCreation() {
         val state = CurrencyState("USD", "100.00")
-        val delegate = state.formattedAmount()
+        val formatted by state.formattedAmount()
 
-        assertNotNull(delegate)
+        assertTrue(formatted.isNotBlank())
+        assertTrue(formatted.any { it.isDigit() })
     }
 
     @Test
     fun testFormattedAmountDelegateWithStyle() {
         val state = CurrencyState("USD", "100.00")
-        val delegate = state.formattedAmount(CurrencyStyle.Iso)
+        val formatted by state.formattedAmount(CurrencyStyle.Iso)
 
-        assertNotNull(delegate)
+        assertTrue(formatted.isNotBlank())
+        assertTrue(formatted.any { it.isDigit() })
+        assertTrue(formatted.contains("USD"))
     }
 
     @Test
@@ -212,6 +229,7 @@ class CurrencyStateTest {
             val formatted = state.formattedAmount
             assertTrue(state.currencyResult.isSuccess, "Failed for currency: $code")
             assertNotNull(formatted, "Failed for currency: $code")
+            assertTrue(formatted.any { it.isDigit() }, "No digits in formatted output for $code: $formatted")
         }
     }
 

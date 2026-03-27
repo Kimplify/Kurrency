@@ -9,6 +9,7 @@ import kotlinx.coroutines.internal.synchronized
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class CurrencyFormatterThreadSafetyTest {
@@ -18,6 +19,8 @@ class CurrencyFormatterThreadSafetyTest {
         val formatter = CurrencyFormatter(KurrencyLocale.US)
         val iterations = 100
 
+        val expected = formatter.formatCurrencyStyleResult("1234.56", "USD").getOrThrow()
+
         val results = (1..iterations).map {
             async(Dispatchers.Default) {
                 formatter.formatCurrencyStyleResult("1234.56", "USD")
@@ -26,13 +29,18 @@ class CurrencyFormatterThreadSafetyTest {
 
         results.forEach { result ->
             assertTrue(result.isSuccess)
-            assertEquals("$1,234.56", result.getOrNull())
+            val formatted = result.getOrNull()
+            assertNotNull(formatted)
+            assertEquals(expected, formatted)
         }
     }
 
     @Test
     fun formatCurrencyStyle_multipleFormattersCreatedConcurrently_allWorkCorrectly() = runTest {
         val iterations = 50
+
+        val referenceFormatter = CurrencyFormatter(KurrencyLocale.US)
+        val expected = referenceFormatter.formatCurrencyStyleResult("500.25", "USD").getOrThrow()
 
         val results = (1..iterations).map {
             async(Dispatchers.Default) {
@@ -43,7 +51,9 @@ class CurrencyFormatterThreadSafetyTest {
 
         results.forEach { result ->
             assertTrue(result.isSuccess)
-            assertEquals("$500.25", result.getOrNull())
+            val formatted = result.getOrNull()
+            assertNotNull(formatted)
+            assertEquals(expected, formatted)
         }
     }
 
@@ -62,6 +72,9 @@ class CurrencyFormatterThreadSafetyTest {
 
         results.forEach { (result, _) ->
             assertTrue(result.isSuccess)
+            val formatted = result.getOrNull()
+            assertNotNull(formatted)
+            assertTrue(formatted.any { it.isDigit() })
         }
     }
 
@@ -211,25 +224,90 @@ class CurrencyFormatterThreadSafetyTest {
     @Test
     fun formatCurrencyStyle_sameFormatterMultipleThreads_noDataCorruption() = runTest {
         val formatter = CurrencyFormatter(KurrencyLocale.US)
-        val testData = mapOf(
-            "1000.00" to "$1,000.00",
-            "2000.00" to "$2,000.00",
-            "3000.00" to "$3,000.00",
-            "4000.00" to "$4,000.00",
-            "5000.00" to "$5,000.00"
-        )
+        val amounts = listOf("1000.00", "2000.00", "3000.00", "4000.00", "5000.00")
 
-        val results = testData.flatMap { (amount, expected) ->
+        val expectedByAmount = amounts.associateWith { amount ->
+            formatter.formatCurrencyStyleResult(amount, "USD").getOrThrow()
+        }
+
+        val results = amounts.flatMap { amount ->
             (1..20).map {
                 async(Dispatchers.Default) {
                     val result = formatter.formatCurrencyStyleResult(amount, "USD")
-                    result.getOrNull() to expected
+                    result.getOrNull() to amount
                 }
             }
         }.awaitAll()
 
-        results.forEach { (actual, expected) ->
-            assertEquals(expected, actual)
+        results.forEach { pair: Pair<String?, String> ->
+            assertNotNull(pair.first)
+            assertEquals(expectedByAmount[pair.second], pair.first)
+        }
+    }
+
+    @Test
+    fun currencyAmountFromMajorUnits_concurrentAccess_producesConsistentResults() = runTest {
+        val iterations = 100
+
+        val results = (1..iterations).map {
+            async(Dispatchers.Default) {
+                CurrencyAmount.fromMajorUnits("123.45", Kurrency.USD)
+            }
+        }.awaitAll()
+
+        results.forEach { result ->
+            assertTrue(result.isSuccess, "CurrencyAmount.fromMajorUnits should succeed")
+            val amount = result.getOrNull()
+            assertNotNull(amount)
+            assertEquals(12345L, amount.minorUnits, "Minor units should be consistent")
+            assertEquals(Kurrency.USD, amount.currency, "Currency should be consistent")
+        }
+    }
+
+    @Test
+    fun currencyFormatterCreation_concurrentWithDifferentLocales_allWorkCorrectly() = runTest {
+        val locales = listOf(
+            KurrencyLocale.US,
+            KurrencyLocale.GERMANY,
+            KurrencyLocale.JAPAN,
+            KurrencyLocale.UK,
+            KurrencyLocale.FRANCE,
+            KurrencyLocale.ITALY,
+            KurrencyLocale.SPAIN,
+            KurrencyLocale.BRAZIL,
+            KurrencyLocale.CANADA,
+            KurrencyLocale.CHINA,
+        )
+
+        val results = locales.flatMap { locale ->
+            (1..10).map {
+                async(Dispatchers.Default) {
+                    val formatter = CurrencyFormatter(locale)
+                    val result = formatter.formatCurrencyStyleResult("1000.00", "USD")
+                    Triple(locale, result, formatter)
+                }
+            }
+        }.awaitAll()
+
+        // All formatters should succeed
+        results.forEach { (locale, result, _) ->
+            assertTrue(result.isSuccess, "Formatting with locale ${locale.languageTag} should succeed")
+            val formatted = result.getOrNull()
+            assertNotNull(formatted, "Formatted result for ${locale.languageTag} should not be null")
+            assertTrue(formatted.any { it.isDigit() }, "Result should contain digits: $formatted")
+        }
+
+        // Verify consistency: same locale should produce same output
+        val groupedByLocale = results.groupBy { it.first.languageTag }
+        groupedByLocale.forEach { (tag, group) ->
+            val firstResult = group.first().second.getOrThrow()
+            group.forEach { (_, result, _) ->
+                assertEquals(
+                    firstResult,
+                    result.getOrThrow(),
+                    "Same locale ($tag) should produce same output"
+                )
+            }
         }
     }
 }

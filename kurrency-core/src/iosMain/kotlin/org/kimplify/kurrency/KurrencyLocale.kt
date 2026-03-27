@@ -6,28 +6,15 @@ import platform.Foundation.NSLocaleGroupingSeparator
 import platform.Foundation.currentLocale
 import platform.Foundation.localeIdentifier
 
-/**
- * iOS implementation of KurrencyLocale using NSLocale.
- */
 actual class KurrencyLocale(internal val nsLocale: NSLocale) {
 
     actual val languageTag: String
         get() = nsLocale.localeIdentifier.replace("_", "-")
 
-    /**
-     * Returns the standard decimal separator for this locale.
-     * This is the locale's default, NOT the user's custom preference.
-     * For formatting with custom preferences, use CurrencyFormatter.
-     */
     actual val decimalSeparator: Char
         get() = (nsLocale.objectForKey(NSLocaleDecimalSeparator) as? String)
             ?.firstOrNull() ?: '.'
 
-    /**
-     * Returns the standard grouping separator for this locale.
-     * This is the locale's default, NOT the user's custom preference.
-     * For formatting with custom preferences, use CurrencyFormatter.
-     */
     actual val groupingSeparator: Char
         get() = (nsLocale.objectForKey(NSLocaleGroupingSeparator) as? String)
             ?.firstOrNull() ?: ','
@@ -35,15 +22,21 @@ actual class KurrencyLocale(internal val nsLocale: NSLocale) {
     actual val usesCommaAsDecimalSeparator: Boolean
         get() = decimalSeparator == ','
 
+    actual val isRightToLeft: Boolean
+        get() = languageTag.substringBefore("-").lowercase() in RTL_LANGUAGES
+
+    actual val numeralSystem: NumeralSystem
+        get() = numeralSystemFromTag(languageTag)
+
     actual companion object {
         actual fun fromLanguageTag(languageTag: String): Result<KurrencyLocale> {
             return try {
                 if (languageTag.isBlank()) {
-                    return Result.failure(IllegalArgumentException("Language tag cannot be blank"))
+                    return Result.failure(KurrencyError.InvalidLocale(languageTag))
                 }
 
                 if (!BCP47_LANGUAGE_TAG_REGEX.matches(languageTag)) {
-                    return Result.failure(IllegalArgumentException("Invalid language tag format: $languageTag"))
+                    return Result.failure(KurrencyError.InvalidLocale(languageTag))
                 }
 
                 val localeIdentifier = languageTag.replace("-", "_")
@@ -58,7 +51,6 @@ actual class KurrencyLocale(internal val nsLocale: NSLocale) {
             return KurrencyLocale(NSLocale.currentLocale)
         }
 
-        // Predefined locales
         actual val US: KurrencyLocale = KurrencyLocale(NSLocale(localeIdentifier = "en_US"))
         actual val UK: KurrencyLocale = KurrencyLocale(NSLocale(localeIdentifier = "en_GB"))
         actual val CANADA: KurrencyLocale = KurrencyLocale(NSLocale(localeIdentifier = "en_CA"))
@@ -76,6 +68,14 @@ actual class KurrencyLocale(internal val nsLocale: NSLocale) {
         actual val SAUDI_ARABIA: KurrencyLocale =
             KurrencyLocale(NSLocale(localeIdentifier = "ar_SA"))
         actual val INDIA: KurrencyLocale = KurrencyLocale(NSLocale(localeIdentifier = "hi_IN"))
+        actual val ARABIC_EG: KurrencyLocale =
+            KurrencyLocale(NSLocale(localeIdentifier = "ar_EG"))
+        actual val HEBREW: KurrencyLocale =
+            KurrencyLocale(NSLocale(localeIdentifier = "he_IL"))
+        actual val PERSIAN: KurrencyLocale =
+            KurrencyLocale(NSLocale(localeIdentifier = "fa_IR"))
+        actual val URDU: KurrencyLocale =
+            KurrencyLocale(NSLocale(localeIdentifier = "ur_PK"))
     }
 
     override fun equals(other: Any?): Boolean {
@@ -87,4 +87,16 @@ actual class KurrencyLocale(internal val nsLocale: NSLocale) {
     override fun hashCode(): Int = nsLocale.localeIdentifier.hashCode()
 
     override fun toString(): String = "KurrencyLocale($languageTag)"
+}
+
+private val RTL_LANGUAGES = setOf("ar", "he", "fa", "ur", "dv", "ps", "yi", "ku", "sd")
+
+private fun numeralSystemFromTag(tag: String): NumeralSystem {
+    val lang = tag.substringBefore("-").lowercase()
+    return when (lang) {
+        "fa" -> NumeralSystem.PERSIAN
+        "ar" -> NumeralSystem.EASTERN_ARABIC
+        "ur", "ps" -> NumeralSystem.EASTERN_ARABIC
+        else -> NumeralSystem.WESTERN
+    }
 }

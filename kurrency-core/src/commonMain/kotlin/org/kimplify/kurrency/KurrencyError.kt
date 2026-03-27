@@ -101,5 +101,18 @@ sealed class KurrencyError(
         val currencyCode: String,
         cause: Throwable
     ) : KurrencyError("Failed to get fraction digits for $currencyCode", cause)
+
+    /**
+     * Locale language tag is invalid or not recognized.
+     *
+     * Occurs when:
+     * - Language tag is blank or empty
+     * - Language tag does not match BCP 47 format
+     *
+     * @property languageTag The invalid language tag that was provided
+     */
+    class InvalidLocale(
+        val languageTag: String
+    ) : KurrencyError("Invalid locale: $languageTag")
 }
 

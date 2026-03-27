@@ -6,6 +6,18 @@ package org.kimplify.kurrency
  * This class wraps platform-specific locale implementations and provides
  * a consistent API for locale handling in Kurrency.
  *
+ * ## Platform Behavior Differences
+ *
+ * On **Android/JVM/Web**, the locale provided to [CurrencyFormatter] directly controls
+ * formatting output (decimal separators, grouping, symbol placement, etc.).
+ *
+ * On **iOS**, the locale and formatting locale are separate concepts. iOS users can customize
+ * formatting preferences (decimal/grouping separators) in Settings independently of their
+ * language/region. [CurrencyFormatter] on iOS always uses `NSLocale.currentLocale` for
+ * formatting to respect these custom preferences, regardless of which [KurrencyLocale] is
+ * provided. The properties on this class ([decimalSeparator], [groupingSeparator]) return
+ * the locale's standard defaults, not the user's custom overrides.
+ *
  * @property languageTag The BCP 47 language tag (e.g., "en-US", "de-DE", "ja-JP")
  * @property platformLocale The underlying platform-specific locale object
  *   - Android/JVM: `java.util.Locale`
@@ -42,6 +54,21 @@ expect class KurrencyLocale {
      * - `false` for: en-US, en-GB, ja-JP, zh-CN, etc.
      */
     val usesCommaAsDecimalSeparator: Boolean
+
+    /**
+     * Returns true if this locale uses right-to-left text direction.
+     *
+     * RTL locales include Arabic, Hebrew, Persian, Urdu, and others.
+     * This can be used to adjust UI layout and text alignment for currency displays.
+     */
+    val isRightToLeft: Boolean
+
+    /**
+     * The numeral system used by this locale for digit representation.
+     *
+     * @see NumeralSystem
+     */
+    val numeralSystem: NumeralSystem
 
     companion object {
         /**
@@ -101,5 +128,17 @@ expect class KurrencyLocale {
 
         /** Hindi (India) (hi-IN) */
         val INDIA: KurrencyLocale
+
+        /** Arabic (Egypt) (ar-EG) */
+        val ARABIC_EG: KurrencyLocale
+
+        /** Hebrew (Israel) (he-IL) */
+        val HEBREW: KurrencyLocale
+
+        /** Persian (Iran) (fa-IR) */
+        val PERSIAN: KurrencyLocale
+
+        /** Urdu (Pakistan) (ur-PK) */
+        val URDU: KurrencyLocale
     }
 }

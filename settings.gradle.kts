@@ -35,7 +35,8 @@ plugins {
 }
 
 include(
-    ":sample",
+    ":sample:shared",
+    ":sample:androidApp",
     ":kurrency-core",
     ":kurrency-compose",
     ":kurrency-deci"

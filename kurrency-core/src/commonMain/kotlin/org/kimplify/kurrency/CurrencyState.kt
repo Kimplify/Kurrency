@@ -2,6 +2,7 @@ package org.kimplify.kurrency
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,56 +85,28 @@ class CurrencyState(
      * Returns `Result.success(Kurrency)` if [currencyCode] is valid,
      * or `Result.failure(KurrencyError.InvalidCurrencyCode)` otherwise.
      */
-    val currencyResult: Result<Kurrency>
-        get() = Kurrency.fromCode(currencyCode)
+    val currencyResult: Result<Kurrency> by derivedStateOf { Kurrency.fromCode(currencyCode) }
 
-    /**
-     * The validated currency object, or null if [currencyCode] is invalid.
-     *
-     * Convenience property equivalent to `currencyResult.getOrNull()`.
-     */
     val currency: Kurrency?
         get() = currencyResult.getOrNull()
 
-    /**
-     * Result containing the formatted amount in standard currency style, or an error if formatting fails.
-     *
-     * Formats using the currency symbol (e.g., "$1,234.56" for USD).
-     * Returns failure if either the currency code or amount is invalid.
-     */
-    val formattedAmountResult: Result<String>
-        get() = currencyResult.fold(
+    val formattedAmountResult: Result<String> by derivedStateOf {
+        currencyResult.fold(
             onSuccess = { it.formatAmount(amount) },
-            onFailure = { Result.failure(it) }
+            onFailure = { Result.failure(it) },
         )
+    }
 
-    /**
-     * Result containing the formatted amount in ISO currency style, or an error if formatting fails.
-     *
-     * Formats using the currency code prefix (e.g., "USD 1,234.56").
-     * Returns failure if either the currency code or amount is invalid.
-     */
-    val formattedAmountIsoResult: Result<String>
-        get() = currencyResult.fold(
+    val formattedAmountIsoResult: Result<String> by derivedStateOf {
+        currencyResult.fold(
             onSuccess = { it.formatAmount(amount, CurrencyStyle.Iso) },
-            onFailure = { Result.failure(it) }
+            onFailure = { Result.failure(it) },
         )
+    }
 
-    /**
-     * Formatted amount in standard currency style, or empty string if formatting fails.
-     *
-     * Convenience property equivalent to `formattedAmountResult.getOrDefault("")`.
-     * Reactively updates when [currencyCode] or [amount] changes.
-     */
     val formattedAmount: String
         get() = formattedAmountResult.getOrDefault("")
 
-    /**
-     * Formatted amount in ISO currency style, or empty string if formatting fails.
-     *
-     * Convenience property equivalent to `formattedAmountIsoResult.getOrDefault("")`.
-     * Reactively updates when [currencyCode] or [amount] changes.
-     */
     val formattedAmountIso: String
         get() = formattedAmountIsoResult.getOrDefault("")
 

@@ -1,6 +1,6 @@
 package org.kimplify.kurrency
 
-import org.kimplify.kurrency.extensions.replaceCommaWithDot
+import org.kimplify.kurrency.extensions.normalizeAmount
 import platform.Foundation.NSLocale
 import platform.Foundation.NSNumber
 import platform.Foundation.NSNumberFormatter
@@ -8,19 +8,16 @@ import platform.Foundation.NSNumberFormatterCurrencyISOCodeStyle
 import platform.Foundation.NSNumberFormatterCurrencyStyle
 import platform.Foundation.NSNumberFormatterStyle
 import platform.Foundation.commonISOCurrencyCodes
-import platform.Foundation.currentLocale
 
+/**
+ * iOS currency formatter implementation.
+ *
+ * Uses the locale provided via [kurrencyLocale] for formatting output,
+ * consistent with JVM, Android, and Web platform behavior.
+ */
 actual class CurrencyFormatterImpl actual constructor(private val kurrencyLocale: KurrencyLocale) : CurrencyFormat {
 
-    /**
-     * On iOS, we use NSLocale.currentLocale for formatting to respect user's
-     * custom formatting preferences (decimal/grouping separators).
-     *
-     * The kurrencyLocale is kept for potential language/region context validation.
-     */
-    private val formattingLocale: NSLocale
-        get() = NSLocale.currentLocale
-
+    private val formattingLocale: NSLocale = kurrencyLocale.nsLocale
 
     actual override fun getFractionDigitsOrDefault(currencyCode: String, default: Int): Int {
         return runCatching {
@@ -43,6 +40,39 @@ actual class CurrencyFormatterImpl actual constructor(private val kurrencyLocale
         return formatCurrencyOrOriginal(amount, currencyCode, NSNumberFormatterCurrencyStyle)
     }
 
+    actual override fun formatCompactStyle(amount: String, currencyCode: String): String {
+        return runCatching {
+            val normalizedAmount = amount.normalizeAmount().trim()
+            if (normalizedAmount.isEmpty()) return amount
+
+            val doubleValue = normalizedAmount.toDouble()
+            require(doubleValue.isFinite()) { "Amount must be a finite number" }
+
+            val absValue = kotlin.math.abs(doubleValue)
+            val (divisor, suffix) = when {
+                absValue >= 1_000_000_000 -> 1_000_000_000.0 to "B"
+                absValue >= 1_000_000 -> 1_000_000.0 to "M"
+                absValue >= 1_000 -> 1_000.0 to "K"
+                else -> 1.0 to ""
+            }
+
+            val scaledValue = doubleValue / divisor
+            val value = NSNumber(scaledValue)
+            val numberFormatter = createNumberFormatter(currencyCode, NSNumberFormatterCurrencyStyle)
+            val formatted = numberFormatter.stringFromNumber(value) ?: return amount
+            if (suffix.isEmpty()) return formatted
+
+            // Insert suffix after the last digit to keep it adjacent to the number,
+            // preserving correct placement in locales with trailing currency symbols (e.g., "1,23K €")
+            val lastDigitIndex = formatted.indexOfLast { it.isDigit() }
+            if (lastDigitIndex < 0) return "$formatted$suffix"
+            formatted.substring(0, lastDigitIndex + 1) + suffix + formatted.substring(lastDigitIndex + 1)
+        }.getOrElse { throwable ->
+            KurrencyLog.w { "Compact formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
+            amount
+        }
+    }
+
     actual override fun formatIsoCurrencyStyle(
         amount: String,
         currencyCode: String
@@ -56,7 +86,7 @@ actual class CurrencyFormatterImpl actual constructor(private val kurrencyLocale
         style: NSNumberFormatterStyle
     ): String {
         return runCatching {
-            val normalizedAmount = amount.replaceCommaWithDot().trim()
+            val normalizedAmount = amount.normalizeAmount().trim()
             if (normalizedAmount.isEmpty()) return amount
 
             val doubleValue = normalizedAmount.toDouble()
@@ -69,6 +99,13 @@ actual class CurrencyFormatterImpl actual constructor(private val kurrencyLocale
             KurrencyLog.w { "Formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
             amount
         }
+    }
+
+    actual override fun parseCurrencyAmount(formattedText: String, currencyCode: String): Double? {
+        return runCatching {
+            val formatter = createNumberFormatter(currencyCode, NSNumberFormatterCurrencyStyle)
+            formatter.numberFromString(formattedText)?.doubleValue
+        }.getOrNull()
     }
 
     private fun createNumberFormatter(

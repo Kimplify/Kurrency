@@ -3,9 +3,6 @@ package org.kimplify.kurrency
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
-/**
- * JVM implementation of KurrencyLocale using java.util.Locale.
- */
 actual class KurrencyLocale(val locale: Locale) {
     actual val languageTag: String
         get() = locale.toLanguageTag()
@@ -19,15 +16,21 @@ actual class KurrencyLocale(val locale: Locale) {
     actual val usesCommaAsDecimalSeparator: Boolean
         get() = decimalSeparator == ','
 
+    actual val isRightToLeft: Boolean
+        get() = languageTag.substringBefore("-").lowercase() in RTL_LANGUAGES
+
+    actual val numeralSystem: NumeralSystem
+        get() = numeralSystemFromTag(languageTag)
+
     actual companion object {
         actual fun fromLanguageTag(languageTag: String): Result<KurrencyLocale> {
             return try {
                 if (languageTag.isBlank()) {
-                    return Result.failure(IllegalArgumentException("Language tag cannot be blank"))
+                    return Result.failure(KurrencyError.InvalidLocale(languageTag))
                 }
 
                 if (!BCP47_LANGUAGE_TAG_REGEX.matches(languageTag)) {
-                    return Result.failure(IllegalArgumentException("Invalid language tag format: $languageTag"))
+                    return Result.failure(KurrencyError.InvalidLocale(languageTag))
                 }
 
                 val locale = Locale.forLanguageTag(languageTag)
@@ -56,6 +59,10 @@ actual class KurrencyLocale(val locale: Locale) {
         actual val RUSSIA: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("ru-RU"))
         actual val SAUDI_ARABIA: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("ar-SA"))
         actual val INDIA: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("hi-IN"))
+        actual val ARABIC_EG: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("ar-EG"))
+        actual val HEBREW: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("he-IL"))
+        actual val PERSIAN: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("fa-IR"))
+        actual val URDU: KurrencyLocale = KurrencyLocale(Locale.forLanguageTag("ur-PK"))
     }
 
     override fun equals(other: Any?): Boolean {
@@ -67,4 +74,16 @@ actual class KurrencyLocale(val locale: Locale) {
     override fun hashCode(): Int = locale.hashCode()
 
     override fun toString(): String = "KurrencyLocale($languageTag)"
+}
+
+private val RTL_LANGUAGES = setOf("ar", "he", "iw", "fa", "ur", "dv", "ps", "yi", "ku", "sd")
+
+private fun numeralSystemFromTag(tag: String): NumeralSystem {
+    val lang = tag.substringBefore("-").lowercase()
+    return when (lang) {
+        "fa" -> NumeralSystem.PERSIAN
+        "ar" -> NumeralSystem.EASTERN_ARABIC
+        "ur", "ps" -> NumeralSystem.EASTERN_ARABIC
+        else -> NumeralSystem.WESTERN
+    }
 }
