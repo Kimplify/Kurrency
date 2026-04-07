@@ -5,6 +5,43 @@ All notable changes to the Kurrency library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-04-07
+
+A precision and consistency release for the new minor units formatting API. No
+breaking changes — fully backward compatible with `0.3.0`.
+
+### Added
+- **String-based minor units formatting API** with full parity across
+  `CurrencyFormatter`, `CurrencyFormat`, `Kurrency`, and `CurrencyAmount`. New
+  ISO, compact, and `CurrencyFormatOptions`-based variants accept `Long` minor
+  units and produce output identical to their major-unit counterparts, without
+  the precision loss inherent to a `Double` round-trip.
+- Comprehensive minor units formatting test suite covering boundary values,
+  precision-sensitive currencies, and locale-specific separators across all
+  supported targets.
+
+### Fixed
+- **Precision loss in `minorUnitsToPlainString`.** The conversion no longer
+  divides by a floating-point power of ten; it now uses string-based arithmetic
+  so every minor unit value round-trips exactly, including currencies and
+  magnitudes that `Double` cannot represent.
+- **`Long.MIN_VALUE` handling in `minorUnitsToPlainString`.** Previously
+  `kotlin.math.abs(Long.MIN_VALUE)` overflowed back to itself, producing
+  malformed output such as `"--92233720368547758.08"`. The sign is now derived
+  from the input and the magnitude is computed via string-based absolute value.
+- **Double formatter initialization in `CurrencyAmount.format(style)` and
+  `CurrencyAmount.format(options)`.** Both overloads previously constructed a
+  `CurrencyFormatter` solely to compute the plain-string amount and then
+  delegated to `Kurrency.formatAmount*`, which built a second formatter. Both
+  paths now route through the formatter's minor-units helpers directly,
+  halving allocation cost on the hot path.
+- Guarded `fractionDigits <= 0` in minor units conversion to handle degenerate
+  currency definitions safely.
+
+### Changed
+- Removed the `docs/superpowers` directory from version control and added a
+  matching entry to `.gitignore`.
+
 ## [0.2.3] - 2025-01-06
 
 ### Added
@@ -16,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Infinity and NaN validation in Android formatter for safer formatting operations
 
 ### Fixed
-- Repository URL consistency across all build.gradle.kts files (now using ChiliNoodles/Kurrency)
+- Repository URL consistency across all build.gradle.kts files (now using Kimplify/Kurrency)
 - Android formatter now validates for infinity and NaN values before formatting
 - README version numbers updated from 0.2.1 to 0.2.3
 - Default formatted amount handling in CurrencyState
@@ -112,6 +149,7 @@ No breaking changes. This release is fully backward compatible.
 
 ---
 
-[0.2.3]: https://github.com/ChiliNoodles/Kurrency/compare/v0.2.2...v0.2.3
-[0.2.2]: https://github.com/ChiliNoodles/Kurrency/compare/v0.2.1...v0.2.2
-[0.2.1]: https://github.com/ChiliNoodles/Kurrency/releases/tag/v0.2.1
+[0.3.1]: https://github.com/Kimplify/Kurrency/compare/v0.3.0...v0.3.1
+[0.2.3]: https://github.com/Kimplify/Kurrency/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/Kimplify/Kurrency/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/Kimplify/Kurrency/releases/tag/v0.2.1
