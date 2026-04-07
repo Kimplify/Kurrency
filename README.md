@@ -1,6 +1,6 @@
 # Kurrency 💱
 
-![CI](https://github.com/ChiliNoodles/Kurrency/workflows/CI/badge.svg)
+![CI](https://github.com/Kimplify/Kurrency/workflows/CI/badge.svg)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.2.0-blue.svg?style=flat&logo=kotlin)
 ![Kotlin Multiplatform](https://img.shields.io/badge/Kotlin_Multiplatform-2.2.0-blue.svg?style=flat&logo=kotlin)
 ![Android](https://img.shields.io/badge/Android-24%2B-green.svg?style=flat&logo=android)

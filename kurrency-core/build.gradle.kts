@@ -91,7 +91,7 @@ mavenPublishing {
         name = "Kurrency"
         description =
             "A Kotlin Multiplatform library for currency formatting and handling across Android, iOS, JVM, and Web platforms"
-        url = "https://github.com/ChiliNoodles/Kurrency"
+        url = "https://github.com/Kimplify/Kurrency"
 
         licenses {
             license {
@@ -115,7 +115,7 @@ mavenPublishing {
         }
 
         scm {
-            url = "https://github.com/ChiliNoodles/Kurrency"
+            url = "https://github.com/Kimplify/Kurrency"
         }
     }
 }

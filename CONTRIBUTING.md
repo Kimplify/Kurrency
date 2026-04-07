@@ -29,7 +29,7 @@ By participating in this project, you agree to abide by our [Code of Conduct](CO
    ```
 3. Add the upstream repository:
    ```bash
-   git remote add upstream https://github.com/ChiliNoodles/Kurrency.git
+   git remote add upstream https://github.com/Kimplify/Kurrency.git
    ```
 4. Create a new branch for your changes:
    ```bash
@@ -96,7 +96,7 @@ We welcome:
 
 ### Before You Start
 
-1. Check existing [issues](https://github.com/ChiliNoodles/Kurrency/issues) and [pull requests](https://github.com/ChiliNoodles/Kurrency/pulls)
+1. Check existing [issues](https://github.com/Kimplify/Kurrency/issues) and [pull requests](https://github.com/Kimplify/Kurrency/pulls)
 2. For major changes, open an issue first to discuss your approach
 3. Make sure tests pass locally before submitting a PR
 
@@ -327,8 +327,8 @@ Any other context, mockups, or examples.
 
 ## Questions?
 
-- Open a [GitHub Discussion](https://github.com/ChiliNoodles/Kurrency/discussions)
-- Open an [issue](https://github.com/ChiliNoodles/Kurrency/issues) with the `question` label
+- Open a [GitHub Discussion](https://github.com/Kimplify/Kurrency/discussions)
+- Open an [issue](https://github.com/Kimplify/Kurrency/issues) with the `question` label
 
 ## License
 
