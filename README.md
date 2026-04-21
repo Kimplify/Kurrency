@@ -221,9 +221,7 @@ fun PriceDisplay(amount: String, currencyCode: String) {
     // Formatter recreates when locale changes
     val formatter = rememberCurrencyFormatter(locale = selectedLocale)
 
-    val formattedPrice = remember(amount, currencyCode) {
-        formatter.formatCurrencyStyleResult(amount, currencyCode).getOrNull() ?: ""
-    }
+    val formattedPrice = formatter.formatCurrencyStyle(amount, currencyCode)
 
     Column {
         Text("Price: $formattedPrice")
