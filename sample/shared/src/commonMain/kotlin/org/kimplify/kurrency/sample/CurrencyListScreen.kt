@@ -41,7 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.kimplify.kurrency.CurrencyMetadata
 import org.kimplify.kurrency.ExperimentalKurrency
-import org.kimplify.kurrency.rememberCurrencyState
+import org.kimplify.kurrency.compose.rememberCurrencyState
 
 @Composable
 fun CurrencyListScreen() {

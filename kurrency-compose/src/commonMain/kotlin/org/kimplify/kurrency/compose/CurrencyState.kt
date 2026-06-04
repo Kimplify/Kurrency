@@ -1,4 +1,4 @@
-package org.kimplify.kurrency
+package org.kimplify.kurrency.compose
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -7,6 +7,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import org.kimplify.kurrency.CurrencyStyle
+import org.kimplify.kurrency.ExperimentalKurrency
+import org.kimplify.kurrency.Kurrency
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
@@ -116,7 +119,6 @@ class CurrencyState(
      * @param currencyCode New ISO 4217 currency code
      */
     fun updateCurrency(currencyCode: String) {
-        KurrencyLog.d { "Updating currency: $currencyCode" }
         this.currencyCode = currencyCode
     }
 
@@ -126,7 +128,6 @@ class CurrencyState(
      * @param newAmount New amount as a string
      */
     fun updateAmount(newAmount: String) {
-        KurrencyLog.d { "Updating amount: $newAmount" }
         amount = newAmount
     }
 
@@ -140,7 +141,6 @@ class CurrencyState(
      * @param newAmount New amount as a string
      */
     fun updateCurrencyAndAmount(currencyCode: String, newAmount: String) {
-        KurrencyLog.d { "Updating currency and amount: currency=$currencyCode, amount=$newAmount" }
         this.currencyCode = currencyCode
         amount = newAmount
     }
