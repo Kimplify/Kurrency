@@ -103,5 +103,6 @@ actual class CurrencyFormatterImpl actual constructor(kurrencyLocale: KurrencyLo
 
 actual fun isValidCurrency(currencyCode: String): Boolean =
     runCatching {
-        java.util.Currency.getInstance(currencyCode.uppercase()) != null
+        val code = currencyCode.uppercase()
+        java.util.Currency.getAvailableCurrencies().any { it.currencyCode == code }
     }.getOrDefault(false)
