@@ -86,6 +86,9 @@ actual class CurrencyFormatterImpl actual constructor(
         currencyCode: String
     ): NumberFormat = NumberFormat.getCurrencyInstance(locale).apply {
         currency = Currency.getInstance(currencyCode)
+        val digits = currency.defaultFractionDigits.coerceAtLeast(0)
+        minimumFractionDigits = digits
+        maximumFractionDigits = digits
     }
 }
 
