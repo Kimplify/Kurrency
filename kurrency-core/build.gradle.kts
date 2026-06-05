@@ -6,21 +6,18 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.composeMultiplatform)
-    alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.maven.publish)
 }
 
 kotlin {
-    androidLibrary {
+    android {
         namespace = "org.kimplify.kurrency.core"
         compileSdk = libs.versions.compileSdk.get().toInt()
         minSdk = libs.versions.minSdk.get().toInt()
 
         withDeviceTest {
             instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-            execution = "ANDROIDX_TEST_ORCHESTRATOR"
         }
         withHostTest {
             isIncludeAndroidResources = true
@@ -40,7 +37,7 @@ kotlin {
         outputModuleName.set("Kurrency")
     }
 
-    js(IR) {
+    js {
         browser()
         nodejs()
     }
@@ -57,7 +54,6 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(libs.runtime)
             implementation(libs.cedar.logging)
             implementation(libs.kotlinx.serialization.json)
         }
@@ -71,7 +67,9 @@ kotlin {
             implementation(libs.androidx.core.ktx)
         }
 
-        androidInstrumentedTest.dependencies {
+        // Device-test source set is `androidDeviceTest` (src/androidDeviceTest);
+        // no type-safe accessor is generated for it, so configure deps via getByName.
+        getByName("androidDeviceTest").dependencies {
             implementation(libs.androidx.testExt.junit)
             implementation(libs.androidx.runner)
             implementation(libs.androidx.rules)

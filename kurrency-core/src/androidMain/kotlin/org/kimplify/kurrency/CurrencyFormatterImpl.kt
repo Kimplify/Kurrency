@@ -1,11 +1,11 @@
 package org.kimplify.kurrency
 
 import android.icu.text.CompactDecimalFormat
+import android.icu.text.DecimalFormat
+import android.icu.text.NumberFormat
 import android.icu.util.Currency
 import org.kimplify.kurrency.extensions.normalizeAmount
 import java.math.BigDecimal
-import java.text.DecimalFormat
-import java.text.NumberFormat
 import java.util.Locale
 
 actual class CurrencyFormatterImpl actual constructor(kurrencyLocale: KurrencyLocale) : CurrencyFormat {
@@ -97,11 +97,13 @@ actual class CurrencyFormatterImpl actual constructor(kurrencyLocale: KurrencyLo
         locale: Locale,
         currencyCode: String
     ): NumberFormat = NumberFormat.getCurrencyInstance(locale).apply {
-        currency = java.util.Currency.getInstance(currencyCode)
+        currency = Currency.getInstance(currencyCode.uppercase())
     }
 }
 
+private val availableCurrencyCodes: Set<String> by lazy {
+    java.util.Currency.getAvailableCurrencies().mapTo(HashSet()) { it.currencyCode }
+}
+
 actual fun isValidCurrency(currencyCode: String): Boolean =
-    runCatching {
-        java.util.Currency.getInstance(currencyCode.uppercase()) != null
-    }.getOrDefault(false)
+    currencyCode.uppercase() in availableCurrencyCodes
