@@ -40,7 +40,7 @@ import org.kimplify.kurrency.ExperimentalKurrency
 import org.kimplify.kurrency.Kurrency
 import org.kimplify.kurrency.KurrencyLocale
 import org.kimplify.kurrency.compose.current
-import org.kimplify.kurrency.rememberCurrencyState
+import org.kimplify.kurrency.compose.rememberCurrencyState
 
 @Composable
 fun KurrencySampleApp() {
