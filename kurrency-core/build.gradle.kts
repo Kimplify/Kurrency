@@ -19,9 +19,6 @@ kotlin {
         withDeviceTest {
             instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         }
-        withHostTest {
-            isIncludeAndroidResources = true
-        }
 
         compilations.configureEach {
             compileTaskProvider.get().compilerOptions {
