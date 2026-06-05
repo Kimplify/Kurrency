@@ -38,6 +38,9 @@ import kotlinx.serialization.Serializable
  * @property negativeStyle How negative amounts should be rendered.
  * @property symbolDisplay What form the currency indicator takes (symbol, ISO code, name, or none).
  * @property zeroDisplay How zero amounts should be rendered.
+ * @property hideZeroFractionDigits When `true`, omit fraction digits entirely if they are all zero
+ *   (e.g. `"$34.00"` → `"$34"`), while non-zero fractions are displayed unchanged
+ *   (e.g. `"$34.20"` remains `"$34.20"`). Takes priority over [minFractionDigits].
  */
 @Serializable
 data class CurrencyFormatOptions(
@@ -48,6 +51,7 @@ data class CurrencyFormatOptions(
     val negativeStyle: NegativeStyle = NegativeStyle.MINUS_SIGN,
     val symbolDisplay: SymbolDisplay = SymbolDisplay.SYMBOL,
     val zeroDisplay: ZeroDisplay = ZeroDisplay.SHOW,
+    val hideZeroFractionDigits: Boolean = false,
 ) {
     init {
         if (minFractionDigits != null && maxFractionDigits != null) {
@@ -107,6 +111,7 @@ data class CurrencyFormatOptions(
         var negativeStyle: NegativeStyle = NegativeStyle.MINUS_SIGN
         var symbolDisplay: SymbolDisplay = SymbolDisplay.SYMBOL
         var zeroDisplay: ZeroDisplay = ZeroDisplay.SHOW
+        var hideZeroFractionDigits: Boolean = false
 
         fun symbolPosition(value: SymbolPosition) = apply { symbolPosition = value }
         fun grouping(value: Boolean) = apply { grouping = value }
@@ -115,11 +120,12 @@ data class CurrencyFormatOptions(
         fun negativeStyle(value: NegativeStyle) = apply { negativeStyle = value }
         fun symbolDisplay(value: SymbolDisplay) = apply { symbolDisplay = value }
         fun zeroDisplay(value: ZeroDisplay) = apply { zeroDisplay = value }
+        fun hideZeroFractionDigits(value: Boolean) = apply { hideZeroFractionDigits = value }
 
         /** Builds an immutable [CurrencyFormatOptions] from the current builder state. */
         fun build() = CurrencyFormatOptions(
             symbolPosition, grouping, minFractionDigits, maxFractionDigits,
-            negativeStyle, symbolDisplay, zeroDisplay,
+            negativeStyle, symbolDisplay, zeroDisplay, hideZeroFractionDigits,
         )
     }
 }

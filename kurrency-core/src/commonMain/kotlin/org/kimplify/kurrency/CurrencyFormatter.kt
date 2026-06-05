@@ -432,9 +432,12 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
             integerPart
         }
 
-        // Reassemble with locale decimal separator
-        return if (fractionalPart.isNotEmpty()) {
-            "$groupedInteger${locale.decimalSeparator}$fractionalPart"
+        val effectiveFraction =
+            if (options.hideZeroFractionDigits && fractionalPart.isNotEmpty() && fractionalPart.all { it == '0' }) ""
+            else fractionalPart
+
+        return if (effectiveFraction.isNotEmpty()) {
+            "$groupedInteger${locale.decimalSeparator}$effectiveFraction"
         } else {
             groupedInteger
         }
