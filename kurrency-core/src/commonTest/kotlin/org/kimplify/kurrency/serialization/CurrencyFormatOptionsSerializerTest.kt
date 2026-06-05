@@ -39,6 +39,15 @@ class CurrencyFormatOptionsSerializerTest {
     }
 
     @Test
+    fun hideZeroFractionDigitsRoundTrip() {
+        val original = CurrencyFormatOptions(hideZeroFractionDigits = true)
+        val serialized = json.encodeToString(CurrencyFormatOptions.serializer(), original)
+        val deserialized = json.decodeFromString(CurrencyFormatOptions.serializer(), serialized)
+        assertEquals(original, deserialized)
+        assertTrue(deserialized.hideZeroFractionDigits)
+    }
+
+    @Test
     fun partialJsonUsesDefaults() {
         val partial = """{"symbolDisplay":"NONE"}"""
         val deserialized = json.decodeFromString(CurrencyFormatOptions.serializer(), partial)
