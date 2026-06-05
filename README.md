@@ -1,8 +1,8 @@
 # Kurrency 💱
 
 ![CI](https://github.com/Kimplify/Kurrency/workflows/CI/badge.svg)
-![Kotlin](https://img.shields.io/badge/Kotlin-2.2.0-blue.svg?style=flat&logo=kotlin)
-![Kotlin Multiplatform](https://img.shields.io/badge/Kotlin_Multiplatform-2.2.0-blue.svg?style=flat&logo=kotlin)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0-blue.svg?style=flat&logo=kotlin)
+![Kotlin Multiplatform](https://img.shields.io/badge/Kotlin_Multiplatform-2.4.0-blue.svg?style=flat&logo=kotlin)
 ![Android](https://img.shields.io/badge/Android-24%2B-green.svg?style=flat&logo=android)
 ![iOS](https://img.shields.io/badge/iOS-13%2B-lightgrey.svg?style=flat&logo=apple)
 ![JVM](https://img.shields.io/badge/JVM-17%2B-orange.svg?style=flat&logo=openjdk)
@@ -10,7 +10,7 @@
 ![WasmJs](https://img.shields.io/badge/WasmJs-✓-purple.svg?style=flat&logo=webassembly)
 ![License](https://img.shields.io/badge/License-Apache%202.0-orange.svg?style=flat)
 
-Type-safe currency formatting for Kotlin Multiplatform with Compose support and comprehensive locale management.
+Type-safe currency formatting for Kotlin Multiplatform, with locale-aware output and optional Compose integration.
 
 ## Table of Contents
 
@@ -26,189 +26,136 @@ Type-safe currency formatting for Kotlin Multiplatform with Compose support and 
 
 ## Features
 
-- 🌍 **Multi-platform support** - Android, iOS, JVM, JS, WasmJs
-- 🌐 **Locale management** - Format currencies for any locale
-- 🎨 **Compose integration** - Ready-to-use Composables with reactive locale updates
-- ✅ **Type-safe error handling** - Result-based API
-- 🔄 **Multiple format styles** - Standard currency symbols or ISO codes
-- 📦 **Lightweight** - Minimal dependencies
+- 🌍 **Multiplatform** — Android, iOS, JVM, JS, and WasmJs from a single API
+- 🌐 **Locale-aware** — separators, grouping, and symbol placement per locale
+- 🎨 **Compose integration** — ready-to-use composables with reactive locale updates
+- ✅ **Type-safe errors** — `Result`-based API with a sealed `KurrencyError` hierarchy
+- 🔄 **Multiple styles** — symbol, ISO code, and compact formatting
+- 📦 **Lightweight** — minimal dependencies
 
 ## Installation
 
-### Core Library
+### Core library
 
 ```kotlin
 dependencies {
-    implementation("org.kimplify:kurrency-core:0.2.3")
+    implementation("org.kimplify:kurrency-core:0.3.1")
 }
 ```
 
-### Compose Integration (Optional)
+### Compose integration (optional)
 
 ```kotlin
 dependencies {
-    implementation("org.kimplify:kurrency-core:0.2.3")
-    implementation("org.kimplify:kurrency-compose:0.2.3")
+    implementation("org.kimplify:kurrency-core:0.3.1")
+    implementation("org.kimplify:kurrency-compose:0.3.1")
 }
 ```
 
 ## Quick Start
 
-### Basic Usage (System Locale)
+Create a `CurrencyFormatter` for a locale (the no-argument constructor uses the system locale), then format with `Result`-based methods.
 
 ```kotlin
 import org.kimplify.kurrency.CurrencyFormatter
 
-// Using the singleton with system locale
-val result: Result<String> = CurrencyFormatter.formatCurrencyStyleResult("1234.56", "USD")
-val formatted = result.getOrNull() // "$1,234.56" (in en-US locale)
+val formatter = CurrencyFormatter() // system locale
 
-// Get fraction digits for a currency
-val fractionDigits = CurrencyFormatter.getFractionDigits("USD").getOrNull() // 2
+formatter.formatCurrencyStyleResult("1234.56", "USD")    // "$1,234.56" (en-US)
+formatter.formatIsoCurrencyStyleResult("1234.56", "USD") // "USD 1,234.56"
+formatter.formatCompactStyleResult("1234567.89", "USD")  // "$1.2M"
 ```
 
-### Formatting Styles
+Fraction digits are a property of the currency and never vary by locale, so they are available statically:
 
 ```kotlin
-// Standard currency format (with symbol)
-CurrencyFormatter.formatCurrencyStyleResult("1234.56", "USD")
-// Result: "$1,234.56" (US), "1.234,56 $" (DE)
-
-// ISO format (with currency code)
-CurrencyFormatter.formatIsoCurrencyStyleResult("1234.56", "USD")
-// Result: "USD 1,234.56"
+CurrencyFormatter.getFractionDigits("USD")          // Result.success(2)
+CurrencyFormatter.getFractionDigitsOrDefault("JPY") // 0
 ```
 
-### Understanding Locale and Fraction Digits
+### Locale vs. fraction digits
 
-**Important**: Fraction digits are a property of the currency itself and do not vary by locale:
-- USD always has 2 fraction digits (whether formatted in US, Germany, or Japan)
-- JPY always has 0 fraction digits (whether formatted in US, Germany, or Japan)
-- BHD (Bahraini Dinar) always has 3 fraction digits
+A currency always uses the same number of fraction digits, regardless of where it is displayed:
 
-What **does** vary by locale:
-- Decimal separator (`.` in US, `,` in Germany)
-- Grouping separator (`,` in US, `.` in Germany)
-- Currency symbol placement
-- Spacing around symbols
+- USD → 2 digits, JPY → 0 digits, BHD → 3 digits
+
+The **locale** only controls presentation: decimal separator, grouping separator, symbol placement, and spacing.
 
 ```kotlin
-// Fraction digits are the same regardless of locale
-val usFraction = CurrencyFormatter.getFractionDigits("USD", KurrencyLocale.US)  // Returns 2
-val deFraction = CurrencyFormatter.getFractionDigits("USD", KurrencyLocale.GERMANY)  // Returns 2
+val us = CurrencyFormatter(KurrencyLocale.US)
+val de = CurrencyFormatter(KurrencyLocale.GERMANY)
 
-// But formatting differs by locale
-val usFormat = CurrencyFormatter.formatCurrencyStyleResult("1234.56", "USD", KurrencyLocale.US)
-// Result: "$1,234.56"
+us.formatCurrencyStyleResult("1234.56", "USD") // "$1,234.56"
+de.formatCurrencyStyleResult("1234.56", "USD") // "1.234,56 $"
 
-val deFormat = CurrencyFormatter.formatCurrencyStyleResult("1234.56", "USD", KurrencyLocale.GERMANY)
-// Result: "1.234,56 $"
+// JPY has no fraction digits in any locale
+us.formatCurrencyStyleResult("1234", "JPY")    // "¥1,234"
 ```
 
-### Best Practice: Use Instance-Based API
+### Working with the Currency type
 
-For consistency and clarity, prefer creating formatter instances:
-
-```kotlin
-val formatter = CurrencyFormatter(KurrencyLocale.GERMANY)
-val fractionDigits = formatter.getFractionDigits("USD")  // 2
-val formatted = formatter.formatCurrencyStyleResult("1234.56", "USD")  // "1.234,56 $"
-```
-
-### Working with Currency Data Class
-
-The `Currency` data class now requires explicit fraction digits:
+Currencies are represented by `Kurrency`. Build one from a code with `fromCode`, or use a predefined constant.
 
 ```kotlin
-// Create from currency code (recommended)
-val currency = Currency.fromCode("USD").getOrThrow()  // Currency(code="USD", fractionDigits=2)
+import org.kimplify.kurrency.Kurrency
 
-// Create with specific locale formatter
-val currency = Currency.fromCode("EUR", KurrencyLocale.GERMANY).getOrThrow()
+val usd = Kurrency.fromCode("USD").getOrThrow()
+val eur = Kurrency.EUR
+val valid = Kurrency.isValid("USD") // true
 
-// Or provide fraction digits explicitly
-val currency = Currency("USD", 2)
-
-// Format amounts with the Currency object
-val formatted = currency.formatAmount("1234.56").getOrNull()  // Uses system locale
+usd.formatAmount("1234.56").getOrNull() // "$1,234.56" (system locale)
+eur.formatAmount("1234.56", locale = KurrencyLocale.GERMANY).getOrNull() // "1.234,56 €"
 ```
 
 ## Locale Management
 
-### Using Predefined Locales
+### Predefined locales
 
 ```kotlin
 import org.kimplify.kurrency.CurrencyFormatter
 import org.kimplify.kurrency.KurrencyLocale
 
-// Create formatters for specific locales
-val usFormatter = CurrencyFormatter(KurrencyLocale.US)
-val germanFormatter = CurrencyFormatter(KurrencyLocale.GERMANY)
-val japaneseFormatter = CurrencyFormatter(KurrencyLocale.JAPAN)
-
-// Format the same amount in different locales
-usFormatter.formatCurrencyStyleResult("1234.56", "USD")      // "$1,234.56"
-germanFormatter.formatCurrencyStyleResult("1234.56", "EUR")  // "1.234,56 €"
-japaneseFormatter.formatCurrencyStyleResult("1234.56", "JPY") // "¥1,235"
+val formatter = CurrencyFormatter(KurrencyLocale.JAPAN)
+formatter.formatCurrencyStyleResult("1234.56", "JPY") // "¥1,235"
 ```
 
-### Available Predefined Locales
+Available constants include:
 
 ```kotlin
-KurrencyLocale.US              // en-US
-KurrencyLocale.UK              // en-GB
-KurrencyLocale.CANADA          // en-CA
-KurrencyLocale.CANADA_FRENCH   // fr-CA
-KurrencyLocale.GERMANY         // de-DE
-KurrencyLocale.FRANCE          // fr-FR
-KurrencyLocale.ITALY           // it-IT
-KurrencyLocale.SPAIN           // es-ES
-KurrencyLocale.JAPAN           // ja-JP
-KurrencyLocale.CHINA           // zh-CN
-KurrencyLocale.KOREA           // ko-KR
-KurrencyLocale.BRAZIL          // pt-BR
-KurrencyLocale.RUSSIA          // ru-RU
-KurrencyLocale.SAUDI_ARABIA    // ar-SA
-KurrencyLocale.INDIA           // hi-IN
+KurrencyLocale.US             // en-US
+KurrencyLocale.UK             // en-GB
+KurrencyLocale.CANADA         // en-CA
+KurrencyLocale.CANADA_FRENCH  // fr-CA
+KurrencyLocale.GERMANY        // de-DE
+KurrencyLocale.FRANCE         // fr-FR
+KurrencyLocale.ITALY          // it-IT
+KurrencyLocale.SPAIN          // es-ES
+KurrencyLocale.JAPAN          // ja-JP
+KurrencyLocale.CHINA          // zh-CN
+KurrencyLocale.KOREA          // ko-KR
+KurrencyLocale.BRAZIL         // pt-BR
+KurrencyLocale.RUSSIA         // ru-RU
+KurrencyLocale.SAUDI_ARABIA   // ar-SA
+KurrencyLocale.INDIA          // hi-IN
 ```
 
-### Custom Locales from Language Tags
+### Custom and system locales
 
 ```kotlin
-// Create locale from BCP 47 language tag
-val locale = KurrencyLocale.fromLanguageTag("de-AT").getOrNull() // German (Austria)
-val formatter = CurrencyFormatter(locale)
-```
+// BCP 47 language tag
+val austrian = KurrencyLocale.fromLanguageTag("de-AT").getOrNull()
 
-### System Locale
-
-```kotlin
-// Get the device's current locale
-val systemLocale = KurrencyLocale.systemLocale()
-val formatter = CurrencyFormatter(KurrencyLocale.systemLocale())
-```
-
-### Integration with Compose Multiplatform Locale
-
-```kotlin
-import androidx.compose.ui.text.intl.Locale
-import org.kimplify.kurrency.toKurrencyLocale
-
-@Composable
-fun MyComposable() {
-    val composeLocale = Locale.current
-    val kurrencyLocale = composeLocale.toKurrencyLocale().getOrNull()
-    val formatter = kurrencyLocale?.let { CurrencyFormatter(it) }
-}
+// Device locale
+val system = KurrencyLocale.systemLocale()
 ```
 
 ## Compose Integration
 
-Add the `kurrency-compose` dependency for Jetpack Compose Multiplatform support.
+Add `kurrency-compose` for Jetpack Compose Multiplatform support.
 
-### Using rememberCurrencyFormatter
+### rememberCurrencyFormatter
 
-The formatter automatically recreates when the locale changes (key-based recomposition).
+The formatter is recreated when the locale changes (key-based recomposition). Formatting is cheap, so call it directly during composition rather than caching it.
 
 ```kotlin
 import org.kimplify.kurrency.compose.rememberCurrencyFormatter
@@ -216,26 +163,21 @@ import org.kimplify.kurrency.KurrencyLocale
 
 @Composable
 fun PriceDisplay(amount: String, currencyCode: String) {
-    var selectedLocale by remember { mutableStateOf(KurrencyLocale.US) }
-
-    // Formatter recreates when locale changes
-    val formatter = rememberCurrencyFormatter(locale = selectedLocale)
-
-    val formattedPrice = formatter.formatCurrencyStyle(amount, currencyCode)
+    var locale by remember { mutableStateOf(KurrencyLocale.US) }
+    val formatter = rememberCurrencyFormatter(locale)
 
     Column {
-        Text("Price: $formattedPrice")
-
-        Button(onClick = { selectedLocale = KurrencyLocale.GERMANY }) {
+        Text("Price: ${formatter.formatCurrencyStyle(amount, currencyCode)}")
+        Button(onClick = { locale = KurrencyLocale.GERMANY }) {
             Text("Switch to German locale")
         }
     }
 }
 ```
 
-### Using LocalCurrencyFormatter (CompositionLocal)
+### LocalCurrencyFormatter
 
-Provide a formatter for an entire subtree of your composition.
+Provide a formatter to an entire subtree via `CompositionLocal`.
 
 ```kotlin
 import org.kimplify.kurrency.compose.ProvideCurrencyFormatter
@@ -244,167 +186,118 @@ import org.kimplify.kurrency.KurrencyLocale
 
 @Composable
 fun App() {
-    var appLocale by remember { mutableStateOf(KurrencyLocale.US) }
-
-    ProvideCurrencyFormatter(locale = appLocale) {
-        // All child composables can access the formatter
-        HomeScreen()
+    ProvideCurrencyFormatter(locale = KurrencyLocale.US) {
         ProductScreen()
     }
 }
 
 @Composable
 fun ProductScreen() {
-    // Access the provided formatter
     val formatter = LocalCurrencyFormatter.current
-
-    val price = remember {
-        formatter.formatCurrencyStyleResult("99.99", "USD").getOrNull() ?: ""
-    }
-
-    Text("Price: $price")
+    Text("Price: ${formatter.formatCurrencyStyle("99.99", "USD")}")
 }
 ```
 
-### Reactive Locale Updates
+### Compose locale interop
 
-Combine with Compose's State system for dynamic locale switching:
+Convert a Compose `Locale` to a `KurrencyLocale`:
 
 ```kotlin
+import androidx.compose.ui.text.intl.Locale
+import org.kimplify.kurrency.KurrencyLocale
+import org.kimplify.kurrency.compose.fromComposeLocale
+
 @Composable
-fun MultiCurrencyDisplay() {
-    var locale by remember { mutableStateOf(KurrencyLocale.US) }
-    val formatter = rememberCurrencyFormatter(locale)
-
-    val prices = listOf(
-        "USD" to "100.00",
-        "EUR" to "85.50",
-        "JPY" to "11000"
-    )
-
-    Column {
-        prices.forEach { (currency, amount) ->
-            val formatted = remember(locale, currency, amount) {
-                formatter.formatCurrencyStyleResult(amount, currency).getOrNull() ?: ""
-            }
-            Text(formatted)
-        }
-
-        Row {
-            Button(onClick = { locale = KurrencyLocale.US }) { Text("US") }
-            Button(onClick = { locale = KurrencyLocale.UK }) { Text("UK") }
-            Button(onClick = { locale = KurrencyLocale.JAPAN }) { Text("JP") }
-        }
-    }
+fun MyComposable() {
+    val kurrencyLocale = KurrencyLocale.fromComposeLocale(Locale.current)
+    val formatter = rememberCurrencyFormatter(kurrencyLocale)
 }
 ```
 
 ## API Reference
 
-### CurrencyFormatter (Singleton)
+### CurrencyFormatter
+
+A formatter bound to a locale. Fraction-digit lookups are available on the companion object.
 
 ```kotlin
-// Convenience methods with system locale
-CurrencyFormatter.formatCurrencyStyleResult(amount: String, currencyCode: String): Result<String>
-CurrencyFormatter.formatIsoCurrencyStyleResult(amount: String, currencyCode: String): Result<String>
+// Construction
+CurrencyFormatter(locale: KurrencyLocale = KurrencyLocale.systemLocale())
+
+// Instance formatting (Result-based)
+fun formatCurrencyStyleResult(amount: String, currencyCode: String): Result<String>
+fun formatIsoCurrencyStyleResult(amount: String, currencyCode: String): Result<String>
+fun formatCompactStyleResult(amount: String, currencyCode: String): Result<String>
+
+// Companion (fraction digits do not vary by locale)
 CurrencyFormatter.getFractionDigits(currencyCode: String): Result<Int>
 CurrencyFormatter.getFractionDigitsOrDefault(currencyCode: String): Int
-
-// Methods with explicit locale (recommended for locale-aware applications)
-CurrencyFormatter.formatCurrencyStyleResult(amount: String, currencyCode: String, locale: KurrencyLocale): Result<String>
-CurrencyFormatter.formatIsoCurrencyStyleResult(amount: String, currencyCode: String, locale: KurrencyLocale): Result<String>
-CurrencyFormatter.getFractionDigits(currencyCode: String, locale: KurrencyLocale): Result<Int>
-CurrencyFormatter.getFractionDigitsOrDefault(currencyCode: String, locale: KurrencyLocale): Int
-
-// Create instances with custom locales (recommended pattern)
-CurrencyFormatter(locale: KurrencyLocale): CurrencyFormat
-CurrencyFormatter(KurrencyLocale.systemLocale()): CurrencyFormat
 ```
 
-### Currency (Data Class)
+### Kurrency
 
 ```kotlin
-// Constructor (requires explicit fraction digits)
-Currency(code: String, fractionDigits: Int)
+// Factory and validation (no public constructor)
+Kurrency.fromCode(code: String): Result<Kurrency>
+Kurrency.isValid(code: String): Boolean
 
-// Factory methods (recommended)
-Currency.fromCode(code: String): Result<Currency>
-Currency.fromCode(code: String, locale: KurrencyLocale): Result<Currency>
-Currency.isValid(code: String): Boolean
+// Predefined constants: USD, EUR, GBP, JPY, AUD, CAD, CHF, CNY, INR, KRW, MXN, ...
 
-// Instance methods
-fun formatAmount(amount: String, style: CurrencyStyle = CurrencyStyle.Standard): Result<String>
-fun formatAmount(amount: Double, style: CurrencyStyle = CurrencyStyle.Standard): Result<String>
-fun formatAmountOrEmpty(amount: String, style: CurrencyStyle = CurrencyStyle.Standard): String
-fun formatAmountOrEmpty(amount: Double, style: CurrencyStyle = CurrencyStyle.Standard): String
-fun format(amount: String, style: CurrencyStyle = CurrencyStyle.Standard): FormattedCurrencyDelegate
-fun format(amount: Double, style: CurrencyStyle = CurrencyStyle.Standard): FormattedCurrencyDelegate
+// Instance formatting
+fun formatAmount(amount: String, style: CurrencyStyle = CurrencyStyle.Standard, locale: KurrencyLocale = KurrencyLocale.systemLocale()): Result<String>
+fun formatAmount(amount: Double, style: CurrencyStyle = CurrencyStyle.Standard, locale: KurrencyLocale = KurrencyLocale.systemLocale()): Result<String>
+fun formatAmountOrEmpty(amount: String, style: CurrencyStyle = CurrencyStyle.Standard, locale: KurrencyLocale = KurrencyLocale.systemLocale()): String
 ```
 
-### CurrencyFormat (Interface)
+`CurrencyStyle` is one of `Standard` (symbol), `Iso` (ISO code), or `Accounting` (parentheses for negatives).
+
+### CurrencyFormat (interface)
+
+The shared surface implemented per platform. These methods return a plain `String` (falling back to the input on failure); use the `*Result` methods on `CurrencyFormatter` for explicit error handling.
 
 ```kotlin
 interface CurrencyFormat {
-    fun getFractionDigits(currencyCode: String): Result<Int>
-    fun formatCurrencyStyleResult(amount: String, currencyCode: String): Result<String>
-    fun formatIsoCurrencyStyleResult(amount: String, currencyCode: String): Result<String>
+    fun getFractionDigitsOrDefault(currencyCode: String, default: Int = 2): Int
+    fun formatCurrencyStyle(amount: String, currencyCode: String): String
+    fun formatIsoCurrencyStyle(amount: String, currencyCode: String): String
+    fun formatCompactStyle(amount: String, currencyCode: String): String
 }
 ```
 
 ### KurrencyLocale
 
 ```kotlin
-// Create from language tag
 KurrencyLocale.fromLanguageTag(languageTag: String): Result<KurrencyLocale>
-
-// Get system locale
 KurrencyLocale.systemLocale(): KurrencyLocale
 
-// Predefined locales
-KurrencyLocale.US, UK, CANADA, GERMANY, FRANCE, JAPAN, etc.
-
-// Properties
-val languageTag: String  // e.g., "en-US"
+val languageTag: String        // e.g. "en-US"
+val decimalSeparator: Char
+val groupingSeparator: Char
 ```
 
-### Compose Extensions (kurrency-compose)
+### Compose extensions (`kurrency-compose`)
 
 ```kotlin
-// Remember formatter with specific locale
-@Composable
-fun rememberCurrencyFormatter(locale: KurrencyLocale): CurrencyFormat
+@Composable fun rememberCurrencyFormatter(locale: KurrencyLocale = KurrencyLocale.current()): CurrencyFormat
+@Composable fun rememberSystemCurrencyFormatter(): CurrencyFormat
 
-// Remember formatter with system locale
-@Composable
-fun rememberSystemCurrencyFormatter(): CurrencyFormat
+val LocalCurrencyFormatter: ProvidableCompositionLocal<CurrencyFormat>
 
-// CompositionLocal
-val LocalCurrencyFormatter: CompositionLocal<CurrencyFormat>
+@Composable fun ProvideCurrencyFormatter(locale: KurrencyLocale, content: @Composable () -> Unit)
+@Composable fun ProvideSystemCurrencyFormatter(content: @Composable () -> Unit)
 
-// Provider composables
-@Composable
-fun ProvideCurrencyFormatter(locale: KurrencyLocale, content: @Composable () -> Unit)
-
-@Composable
-fun ProvideSystemCurrencyFormatter(content: @Composable () -> Unit)
-
-// Compose Locale extensions
-fun Locale.toKurrencyLocale(): Result<KurrencyLocale>
-fun KurrencyLocale.Companion.fromComposeLocale(composeLocale: Locale): Result<KurrencyLocale>
-
-@Composable
-fun KurrencyLocale.Companion.current(): KurrencyLocale
+fun KurrencyLocale.Companion.fromComposeLocale(composeLocale: Locale): KurrencyLocale
+@Composable fun KurrencyLocale.Companion.current(): KurrencyLocale
 ```
 
 ## Error Handling
 
-All formatting methods return `Result<String>` for type-safe error handling:
+Result-based methods return `Result<String>`, with failures modeled as `KurrencyError`:
 
 ```kotlin
-val formatter = CurrencyFormatter(KurrencyLocale.US)
-
-formatter.formatCurrencyStyleResult("1234.56", "USD")
-    .onSuccess { formatted -> println(formatted) }
+CurrencyFormatter(KurrencyLocale.US)
+    .formatCurrencyStyleResult("1234.56", "USD")
+    .onSuccess { println(it) }
     .onFailure { error ->
         when (error) {
             is KurrencyError.InvalidAmount -> println("Invalid amount")
@@ -414,21 +307,24 @@ formatter.formatCurrencyStyleResult("1234.56", "USD")
     }
 ```
 
-### Error Types
-
-- `KurrencyError.InvalidCurrencyCode` - Invalid currency code format
-- `KurrencyError.InvalidAmount` - Invalid amount format
-- `KurrencyError.FormattingFailure` - Platform formatting error
-- `KurrencyError.FractionDigitsFailure` - Failed to get fraction digits
+| Error | Meaning |
+|-------|---------|
+| `KurrencyError.InvalidCurrencyCode` | Unknown or malformed currency code |
+| `KurrencyError.InvalidAmount` | Amount could not be parsed |
+| `KurrencyError.FormattingFailure` | Platform formatting error |
+| `KurrencyError.FractionDigitsFailure` | Could not resolve fraction digits |
+| `KurrencyError.InvalidLocale` | Unrecognized locale tag |
 
 ## Platform Support
 
-- ✅ **Android** (API 24+) - Native ICU formatting
-- ✅ **iOS** (iOS 13+) - NSNumberFormatter
-- ✅ **JVM** (Java 17+) - java.text.NumberFormat
-- ✅ **JS** (Browser/Node.js) - Intl.NumberFormat API
-- ✅ **WasmJs** (Browser) - Intl.NumberFormat API
+| Platform | Backend |
+|----------|---------|
+| Android (API 24+) | ICU (`android.icu`) |
+| iOS (13+) | `NSNumberFormatter` |
+| JVM (17+) | `java.text.NumberFormat` |
+| JS (Browser / Node.js) | `Intl.NumberFormat` |
+| WasmJs (Browser) | `Intl.NumberFormat` |
 
 ## License
 
-Apache License 2.0 - Copyright © 2025
+Apache License 2.0 — Copyright © 2025
