@@ -5,6 +5,7 @@ import org.kimplify.kurrency.CurrencyFormatOptions
 import org.kimplify.kurrency.NegativeStyle
 import org.kimplify.kurrency.SymbolDisplay
 import org.kimplify.kurrency.SymbolPosition
+import org.kimplify.kurrency.RoundingMode
 import org.kimplify.kurrency.ZeroDisplay
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -78,5 +79,23 @@ class CurrencyFormatOptionsSerializerTest {
         assertTrue(!serialized.contains("symbolPosition"))
         assertTrue(!serialized.contains("grouping"))
         assertTrue(!serialized.contains("zeroDisplay"))
+    }
+
+    @Test
+    fun roundingModeRoundTrip() {
+        val options = CurrencyFormatOptions(roundingMode = RoundingMode.HALF_UP)
+        val serialized = json.encodeToString(CurrencyFormatOptions.serializer(), options)
+        assertTrue(serialized.contains("HALF_UP"))
+        val deserialized = json.decodeFromString(CurrencyFormatOptions.serializer(), serialized)
+        assertEquals(RoundingMode.HALF_UP, deserialized.roundingMode)
+    }
+
+    @Test
+    fun roundingModeDefaultsToHalfEvenWhenAbsent() {
+        val deserialized = json.decodeFromString(
+            CurrencyFormatOptions.serializer(),
+            """{"symbolDisplay":"NONE"}""",
+        )
+        assertEquals(RoundingMode.HALF_EVEN, deserialized.roundingMode)
     }
 }
