@@ -1,5 +1,5 @@
 [versions]
-appVersionName = "0.3.1"
+appVersionName = "0.4.0"
 
 # SDK Versions
 material3 = "1.9.0"

@@ -39,7 +39,7 @@ Type-safe currency formatting for Kotlin Multiplatform, with locale-aware output
 
 ```kotlin
 dependencies {
-    implementation("org.kimplify:kurrency-core:0.3.1")
+    implementation("org.kimplify:kurrency-core:0.4.0")
 }
 ```
 
@@ -47,8 +47,8 @@ dependencies {
 
 ```kotlin
 dependencies {
-    implementation("org.kimplify:kurrency-core:0.3.1")
-    implementation("org.kimplify:kurrency-compose:0.3.1")
+    implementation("org.kimplify:kurrency-core:0.4.0")
+    implementation("org.kimplify:kurrency-compose:0.4.0")
 }
 ```
 

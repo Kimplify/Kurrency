@@ -5,6 +5,67 @@ All notable changes to the Kurrency library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-06-05
+
+A feature and correctness release. **Contains one breaking change** — the Compose
+state API moved out of `kurrency-core` (see Changed). Consumers of `kurrency-core`
+that don't use Compose are unaffected.
+
+### Added
+- **`CurrencyFormatOptions.hideZeroFractionDigits`** — opt-in flag that omits the
+  fraction digits entirely when they are all zero (`$34.00` → `$34`), while
+  non-zero fractions are displayed unchanged (`$34.20`, `$34.88`). Takes priority
+  over `minFractionDigits` and is a no-op for zero-fraction currencies such as JPY. (#5)
+- **`CurrencyFormatOptions.roundingMode`** with a new `RoundingMode` enum
+  (`HALF_EVEN` default, `HALF_UP`, `DOWN`, `UP`), letting callers choose how amounts
+  with excess fraction digits are rounded. (#14)
+- **`kurrency-deci` options support** — new `CurrencyFormatter.formatWithOptions(amount: Deci, …)`
+  overloads (currency-code and `Kurrency` variants), now formatted exactly.
+
+### Changed
+- **BREAKING — Compose state moved to `kurrency-compose`.** `CurrencyState`,
+  `rememberCurrencyState`, `FormattedAmountDelegate`, and
+  `CurrencyState.formattedAmount()` moved from `kurrency-core` (package
+  `org.kimplify.kurrency`) to `kurrency-compose` (package `org.kimplify.kurrency.compose`).
+  As a result `kurrency-core` no longer depends on the Compose runtime and is again a
+  dependency-free foundation module.
+
+  Migration — add the `kurrency-compose` dependency (if not already present) and
+  update imports:
+
+  ```diff
+  - import org.kimplify.kurrency.rememberCurrencyState
+  + import org.kimplify.kurrency.compose.rememberCurrencyState
+  ```
+
+  These APIs are annotated `@ExperimentalKurrency`. Non-Compose consumers of
+  `kurrency-core` need no changes.
+- **`formatWithOptions` is now decimal-exact.** It no longer round-trips the amount
+  through `Double`, so values beyond `Double` precision format exactly and prior
+  rounding artifacts are gone (e.g. `2.675` now rounds to `2.68` under the default
+  half-even mode). (#14)
+- Toolchain bumps: Kotlin 2.4.0, AGP 9.2.1, Gradle 9.5.1, Compose Multiplatform
+  1.11.1, kotlinx-serialization 1.11.0, kotlinx-coroutines 1.11.0.
+
+### Fixed
+- **Currency fraction digits followed the display locale instead of the currency.**
+  Formatting JPY under a non-Japanese locale produced `¥1,235.00` instead of
+  `¥1,235`. The digit count is now tied to the currency, so JPY (0), USD (2),
+  BHD (3), etc. are correct under every locale. (#10)
+- **Android currency validation was too lenient** — `Kurrency.isValid("XYZ")`
+  returned `true` because ICU accepts any well-formed 3-letter code; validation now
+  checks the known ISO 4217 set, matching JVM and iOS.
+- **Lowercase and scientific-notation amounts in the options path** — codes like
+  `"usd"` and inputs like `"1e3"` are now normalized before formatting instead of
+  falling back to the raw amount.
+
+### Internal
+- Android instrumented tests are wired to the `androidDeviceTest` source set and now
+  execute on device (previously zero ran). The host unit-test variant was dropped
+  (it cannot run Android ICU formatting on a stub JVM). (#16)
+- README corrected for API accuracy (`Kurrency` vs `Currency`, instance vs static
+  formatting, Compose locale interop) and polished. (#9, #12)
+
 ## [0.3.1] - 2026-04-07
 
 A precision and consistency release for the new minor units formatting API. No
