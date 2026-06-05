@@ -103,6 +103,7 @@ class DecimalsTest {
     @Test fun expandScientific_positiveExponent() {
         assertEquals("1000", Decimals.expandScientific("1e3"))
         assertEquals("1500", Decimals.expandScientific("1.5e3"))
+        assertEquals("1000", Decimals.expandScientific("1e+3"))
     }
 
     @Test fun expandScientific_negativeExponent() {

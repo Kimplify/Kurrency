@@ -45,4 +45,20 @@ class DecimalExactFormattingTest {
     fun scientificNotation_isFormatted() {
         assertEquals("$1,000.00", us.formatWithOptions("1e3", "USD", CurrencyFormatOptions()).getOrThrow())
     }
+
+    @Test
+    fun defaultHalfEven_tieRoundsToEven() {
+        assertEquals("$2.66", us.formatWithOptions("2.665", "USD", CurrencyFormatOptions()).getOrThrow())
+    }
+
+    @Test
+    fun negativeAmount_isRounded_minusSign() {
+        assertEquals("-$2.68", us.formatWithOptions("-2.675", "USD", CurrencyFormatOptions()).getOrThrow())
+    }
+
+    @Test
+    fun negativeAmount_isRounded_parentheses() {
+        val opts = CurrencyFormatOptions { negativeStyle = NegativeStyle.PARENTHESES }
+        assertEquals("($2.68)", us.formatWithOptions("-2.675", "USD", opts).getOrThrow())
+    }
 }
