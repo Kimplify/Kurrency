@@ -1,7 +1,10 @@
 @file:OptIn(ExperimentalKurrency::class)
 
-package org.kimplify.kurrency
+package org.kimplify.kurrency.compose
 
+import org.kimplify.kurrency.CurrencyStyle
+import org.kimplify.kurrency.ExperimentalKurrency
+import org.kimplify.kurrency.KurrencyError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
