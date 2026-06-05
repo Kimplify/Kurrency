@@ -59,6 +59,7 @@ class CurrencyFormatOptionsSerializerTest {
         assertEquals(null, deserialized.maxFractionDigits)
         assertEquals(NegativeStyle.MINUS_SIGN, deserialized.negativeStyle)
         assertEquals(ZeroDisplay.SHOW, deserialized.zeroDisplay)
+        assertEquals(false, deserialized.hideZeroFractionDigits)
     }
 
     @Test
