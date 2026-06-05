@@ -97,12 +97,13 @@ actual class CurrencyFormatterImpl actual constructor(kurrencyLocale: KurrencyLo
         locale: Locale,
         currencyCode: String
     ): NumberFormat = NumberFormat.getCurrencyInstance(locale).apply {
-        currency = Currency.getInstance(currencyCode)
+        currency = Currency.getInstance(currencyCode.uppercase())
     }
 }
 
+private val availableCurrencyCodes: Set<String> by lazy {
+    java.util.Currency.getAvailableCurrencies().mapTo(HashSet()) { it.currencyCode }
+}
+
 actual fun isValidCurrency(currencyCode: String): Boolean =
-    runCatching {
-        val code = currencyCode.uppercase()
-        java.util.Currency.getAvailableCurrencies().any { it.currencyCode == code }
-    }.getOrDefault(false)
+    currencyCode.uppercase() in availableCurrencyCodes
