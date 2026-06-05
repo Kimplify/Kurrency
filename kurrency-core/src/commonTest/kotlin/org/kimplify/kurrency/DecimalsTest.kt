@@ -80,6 +80,10 @@ class DecimalsTest {
         assertEquals("3.50", Decimals.abs("3.50"))
     }
 
+    @Test fun abs_stripsLeadingPlus() {
+        assertEquals("3.50", Decimals.abs("+3.50"))
+    }
+
     @Test fun isOne_variants() {
         assertTrue(Decimals.isOne("1"))
         assertTrue(Decimals.isOne("1.00"))

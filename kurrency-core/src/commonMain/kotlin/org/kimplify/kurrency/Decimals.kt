@@ -6,7 +6,7 @@ internal object Decimals {
 
     fun isNegative(s: String): Boolean = s.startsWith("-") && !isZero(s)
 
-    fun abs(s: String): String = if (s.startsWith("-")) s.substring(1) else s
+    fun abs(s: String): String = if (s.startsWith("-") || s.startsWith("+")) s.substring(1) else s
 
     fun isOne(s: String): Boolean {
         val a = abs(s)
