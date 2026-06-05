@@ -49,9 +49,6 @@ fun CurrencyFormat.formatIsoCurrencyStyle(amount: Deci, currency: Kurrency): Str
 /**
  * Formats a [Deci] amount with fine-grained [CurrencyFormatOptions] using this formatter's locale.
  *
- * Formatting is delegated to the `Double`-based engine, so values beyond `Double` precision
- * may be rounded; this does not guarantee exact decimal formatting of the [Deci].
- *
  * @param amount The [Deci] amount to format
  * @param currencyCode The ISO 4217 currency code (e.g., "USD", "EUR")
  * @param options The formatting options to apply
@@ -65,9 +62,6 @@ fun CurrencyFormatter.formatWithOptions(
 
 /**
  * Formats a [Deci] amount with fine-grained [CurrencyFormatOptions] using this formatter's locale.
- *
- * Formatting is delegated to the `Double`-based engine, so values beyond `Double` precision
- * may be rounded; this does not guarantee exact decimal formatting of the [Deci].
  *
  * @param amount The [Deci] amount to format
  * @param currency The [Kurrency] whose ISO code should be used

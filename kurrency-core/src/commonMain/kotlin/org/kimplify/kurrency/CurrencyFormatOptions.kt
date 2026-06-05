@@ -41,6 +41,8 @@ import kotlinx.serialization.Serializable
  * @property hideZeroFractionDigits When `true`, omit fraction digits entirely if they are all zero
  *   (e.g. `"$34.00"` → `"$34"`), while non-zero fractions are displayed unchanged
  *   (e.g. `"$34.20"` remains `"$34.20"`). Takes priority over [minFractionDigits].
+ * @property roundingMode Strategy used when the amount has more fraction digits than the
+ *   target scale. Defaults to [RoundingMode.HALF_EVEN].
  */
 @Serializable
 data class CurrencyFormatOptions(
@@ -52,6 +54,7 @@ data class CurrencyFormatOptions(
     val symbolDisplay: SymbolDisplay = SymbolDisplay.SYMBOL,
     val zeroDisplay: ZeroDisplay = ZeroDisplay.SHOW,
     val hideZeroFractionDigits: Boolean = false,
+    val roundingMode: RoundingMode = RoundingMode.HALF_EVEN,
 ) {
     init {
         if (minFractionDigits != null && maxFractionDigits != null) {
@@ -112,6 +115,7 @@ data class CurrencyFormatOptions(
         var symbolDisplay: SymbolDisplay = SymbolDisplay.SYMBOL
         var zeroDisplay: ZeroDisplay = ZeroDisplay.SHOW
         var hideZeroFractionDigits: Boolean = false
+        var roundingMode: RoundingMode = RoundingMode.HALF_EVEN
 
         fun symbolPosition(value: SymbolPosition) = apply { symbolPosition = value }
         fun grouping(value: Boolean) = apply { grouping = value }
@@ -121,11 +125,12 @@ data class CurrencyFormatOptions(
         fun symbolDisplay(value: SymbolDisplay) = apply { symbolDisplay = value }
         fun zeroDisplay(value: ZeroDisplay) = apply { zeroDisplay = value }
         fun hideZeroFractionDigits(value: Boolean) = apply { hideZeroFractionDigits = value }
+        fun roundingMode(value: RoundingMode) = apply { roundingMode = value }
 
         /** Builds an immutable [CurrencyFormatOptions] from the current builder state. */
         fun build() = CurrencyFormatOptions(
             symbolPosition, grouping, minFractionDigits, maxFractionDigits,
-            negativeStyle, symbolDisplay, zeroDisplay, hideZeroFractionDigits,
+            negativeStyle, symbolDisplay, zeroDisplay, hideZeroFractionDigits, roundingMode,
         )
     }
 }

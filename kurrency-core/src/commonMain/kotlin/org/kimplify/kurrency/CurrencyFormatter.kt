@@ -1,7 +1,6 @@
 package org.kimplify.kurrency
 
 import org.kimplify.kurrency.extensions.normalizeAmount
-import kotlin.math.abs
 
 expect class CurrencyFormatterImpl(kurrencyLocale: KurrencyLocale = KurrencyLocale.systemLocale()) : CurrencyFormat {
     override fun getFractionDigitsOrDefault(currencyCode: String, default: Int): Int
@@ -331,28 +330,21 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
         currencyCode: String,
         options: CurrencyFormatOptions,
     ): Result<String> {
-        return formatWithValidation(amount, currencyCode) { normalizedAmount ->
+        return formatWithValidation(amount, currencyCode) { rawAmount ->
             runCatching {
-                val numericValue = normalizedAmount.toDoubleOrNull()
-                    ?: throw KurrencyError.InvalidAmount(amount)
-
-                // Zero display handling
-                if (numericValue == 0.0) {
+                val normalizedAmount = Decimals.expandScientific(rawAmount.normalizeAmount())
+                if (Decimals.isZero(normalizedAmount)) {
                     when (options.zeroDisplay) {
-                        ZeroDisplay.DASH -> return@runCatching "\u2014" // em-dash
+                        ZeroDisplay.DASH -> return@runCatching "\u2014"
                         ZeroDisplay.EMPTY -> return@runCatching ""
-                        ZeroDisplay.SHOW -> { /* fall through to normal formatting */ }
+                        ZeroDisplay.SHOW -> {}
                     }
                 }
 
                 val metadata = CurrencyMetadata.parse(currencyCode).getOrNull()
                 val symbol = metadata?.symbol ?: ""
-                val isNegative = numericValue < 0
-                val absAmount = if (isNegative) {
-                    if (normalizedAmount.startsWith("-")) normalizedAmount.drop(1) else normalizedAmount
-                } else {
-                    normalizedAmount
-                }
+                val isNegative = Decimals.isNegative(normalizedAmount)
+                val absAmount = Decimals.abs(normalizedAmount)
 
                 // Format the absolute amount with custom fraction digits if needed
                 val formattedAbsAmount = formatNumberPortion(absAmount, currencyCode, options)
@@ -362,7 +354,7 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
                     SymbolDisplay.SYMBOL -> symbol
                     SymbolDisplay.ISO_CODE -> currencyCode
                     SymbolDisplay.NAME -> {
-                        if (abs(numericValue) == 1.0) metadata?.displayName ?: currencyCode
+                        if (Decimals.isOne(normalizedAmount)) metadata?.displayName ?: currencyCode
                         else metadata?.displayNamePlural ?: currencyCode
                     }
                     SymbolDisplay.NONE -> ""
@@ -415,10 +407,7 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
         val maxFrac = rawMaxFrac
         val minFrac = minOf(rawMinFrac, maxFrac)
 
-        val doubleVal = absAmount.toDoubleOrNull() ?: 0.0
-
-        // Format the number to a plain decimal string with the right precision
-        val plainFormatted = formatDecimal(doubleVal, minFrac, maxFrac)
+        val plainFormatted = formatDecimal(absAmount, minFrac, maxFrac, options.roundingMode)
 
         // Split into integer and fractional parts
         val parts = plainFormatted.split(".")
@@ -592,21 +581,17 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
             return result
         }
 
-        /**
-         * Formats a Double to a plain decimal string with the specified fraction digit range.
-         * Uses rounding-half-even (banker's rounding) via standard Kotlin rounding.
-         */
-        internal fun formatDecimal(value: Double, minFractionDigits: Int, maxFractionDigits: Int): String {
-            // Round to maxFractionDigits
-            val factor = tenPow(maxFractionDigits)
-            val rounded = kotlin.math.round(value * factor) / factor
-
-            val plain = doubleToPlainString(rounded)
-            val parts = plain.split(".")
+        internal fun formatDecimal(
+            amount: String,
+            minFractionDigits: Int,
+            maxFractionDigits: Int,
+            mode: RoundingMode,
+        ): String {
+            val rounded = Decimals.roundToScale(amount, maxFractionDigits, mode)
+            val parts = rounded.split(".")
             val intPart = parts[0]
             val rawFrac = if (parts.size > 1) parts[1] else ""
 
-            // Trim trailing zeros down to minFractionDigits, but keep at least minFractionDigits
             val paddedFrac = rawFrac.padEnd(maxFractionDigits, '0').take(maxFractionDigits)
             val trimmedFrac = if (paddedFrac.length > minFractionDigits) {
                 val trimmed = paddedFrac.trimEnd('0')
@@ -634,12 +619,6 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
                 count++
             }
             return sb.reverse().toString()
-        }
-
-        private fun tenPow(n: Int): Double {
-            var result = 1.0
-            repeat(n) { result *= 10.0 }
-            return result
         }
 
         /**
