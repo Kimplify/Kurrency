@@ -40,4 +40,9 @@ class DecimalExactFormattingTest {
     fun leadingPlus_isHandled() {
         assertEquals("$5.00", us.formatWithOptions("+5", "USD", CurrencyFormatOptions()).getOrThrow())
     }
+
+    @Test
+    fun scientificNotation_isFormatted() {
+        assertEquals("$1,000.00", us.formatWithOptions("1e3", "USD", CurrencyFormatOptions()).getOrThrow())
+    }
 }

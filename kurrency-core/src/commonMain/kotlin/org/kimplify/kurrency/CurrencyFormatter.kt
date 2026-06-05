@@ -332,7 +332,7 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
     ): Result<String> {
         return formatWithValidation(amount, currencyCode) { rawAmount ->
             runCatching {
-                val normalizedAmount = rawAmount.normalizeAmount()
+                val normalizedAmount = Decimals.expandScientific(rawAmount.normalizeAmount())
                 if (Decimals.isZero(normalizedAmount)) {
                     when (options.zeroDisplay) {
                         ZeroDisplay.DASH -> return@runCatching "\u2014"

@@ -49,6 +49,26 @@ internal object Decimals {
         return if (scale == 0) intResult else "$intResult.$fracResult"
     }
 
+    fun expandScientific(s: String): String {
+        if (s.none { it == 'e' || it == 'E' }) return s
+        val sign = if (s.startsWith("-")) "-" else ""
+        val unsigned = if (s.startsWith("-") || s.startsWith("+")) s.substring(1) else s
+        val ei = unsigned.indexOfFirst { it == 'e' || it == 'E' }
+        val mantissa = unsigned.substring(0, ei)
+        val exp = unsigned.substring(ei + 1).toIntOrNull() ?: return s
+        val dot = mantissa.indexOf('.')
+        val intDigits = if (dot >= 0) mantissa.substring(0, dot) else mantissa
+        val fracDigits = if (dot >= 0) mantissa.substring(dot + 1) else ""
+        val digits = intDigits + fracDigits
+        val pointPos = intDigits.length + exp
+        val body = when {
+            pointPos <= 0 -> "0." + "0".repeat(-pointPos) + digits
+            pointPos >= digits.length -> digits + "0".repeat(pointPos - digits.length)
+            else -> digits.substring(0, pointPos) + "." + digits.substring(pointPos)
+        }
+        return sign + body
+    }
+
     private fun incrementDigits(digits: String): String {
         val chars = digits.toCharArray()
         var i = chars.size - 1

@@ -99,4 +99,22 @@ class DecimalsTest {
     @Test fun halfEven_tieWithTrailingNonZero_roundsUp() {
         assertEquals("2.67", Decimals.roundToScale("2.6650001", 2, RoundingMode.HALF_EVEN))
     }
+
+    @Test fun expandScientific_positiveExponent() {
+        assertEquals("1000", Decimals.expandScientific("1e3"))
+        assertEquals("1500", Decimals.expandScientific("1.5e3"))
+    }
+
+    @Test fun expandScientific_negativeExponent() {
+        assertEquals("0.0123", Decimals.expandScientific("1.23e-2"))
+    }
+
+    @Test fun expandScientific_uppercaseAndSign() {
+        assertEquals("-2000", Decimals.expandScientific("-2E3"))
+        assertEquals("0", Decimals.expandScientific("0E0"))
+    }
+
+    @Test fun expandScientific_plainPassthrough() {
+        assertEquals("1234.56", Decimals.expandScientific("1234.56"))
+    }
 }
