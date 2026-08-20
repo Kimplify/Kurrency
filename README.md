@@ -39,7 +39,7 @@ Type-safe currency formatting for Kotlin Multiplatform, with locale-aware output
 
 ```kotlin
 dependencies {
-    implementation("org.kimplify:kurrency-core:0.4.0")
+    implementation("org.kimplify:kurrency-core:0.5.0")
 }
 ```
 
@@ -47,8 +47,8 @@ dependencies {
 
 ```kotlin
 dependencies {
-    implementation("org.kimplify:kurrency-core:0.4.0")
-    implementation("org.kimplify:kurrency-compose:0.4.0")
+    implementation("org.kimplify:kurrency-core:0.5.0")
+    implementation("org.kimplify:kurrency-compose:0.5.0")
 }
 ```
 
@@ -79,7 +79,18 @@ A currency always uses the same number of fraction digits, regardless of where i
 
 - USD → 2 digits, JPY → 0 digits, BHD → 3 digits
 
-The **locale** only controls presentation: decimal separator, grouping separator, symbol placement, and spacing.
+The **locale** controls presentation — decimal separator, grouping separator, symbol placement, and
+spacing — and it also picks the symbol itself, which is what keeps currencies sharing the `$` glyph
+apart:
+
+```kotlin
+val us = CurrencyFormatter(KurrencyLocale.US)
+
+us.formatMinorUnitsWithOptions(10_000, "AUD", CurrencyFormatOptions.STANDARD) // "A$100.00"
+us.formatMinorUnitsWithOptions(10_000, "USD", CurrencyFormatOptions.STANDARD) // "$100.00"
+```
+
+An Australian reader sees plain `$100.00` for AUD, because that is the symbol in their locale.
 
 ```kotlin
 val us = CurrencyFormatter(KurrencyLocale.US)
@@ -258,6 +269,7 @@ The shared surface implemented per platform. These methods return a plain `Strin
 ```kotlin
 interface CurrencyFormat {
     fun getFractionDigitsOrDefault(currencyCode: String, default: Int = 2): Int
+    fun getCurrencySymbolOrDefault(currencyCode: String, default: String): String
     fun formatCurrencyStyle(amount: String, currencyCode: String): String
     fun formatIsoCurrencyStyle(amount: String, currencyCode: String): String
     fun formatCompactStyle(amount: String, currencyCode: String): String

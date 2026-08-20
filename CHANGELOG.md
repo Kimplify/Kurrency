@@ -5,7 +5,7 @@ All notable changes to the Kurrency library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - Unreleased
+## [0.5.0] - 2026-08-20
 
 A correctness release for the options API. Formatted output changes for three cases
 described below — no source-level breaking change, but golden-file tests will move.
@@ -250,9 +250,10 @@ No breaking changes. This release is fully backward compatible.
 
 | Version | Release Date | Support Status |
 |---------|--------------|----------------|
-| 0.2.3   | 2025-01-06   | ✅ Current     |
-| 0.2.2   | 2024         | ⚠️ Deprecated  |
-| 0.2.1   | 2024         | ⚠️ Deprecated  |
+| 0.5.0   | 2026-08-20   | ✅ Current     |
+| 0.4.0   | 2026-06-05   | ⚠️ Superseded  |
+| 0.3.1   | 2026-04-07   | ⚠️ Deprecated  |
+| 0.2.x   | 2024–2025    | ⚠️ Deprecated  |
 
 ---
 

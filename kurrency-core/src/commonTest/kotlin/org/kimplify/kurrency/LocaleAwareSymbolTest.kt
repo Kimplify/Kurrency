@@ -48,6 +48,19 @@ class LocaleAwareSymbolTest {
     }
 
     @Test
+    fun theSameCurrencyCarriesADifferentSymbolForADifferentReader() {
+        val au = CurrencyFormatter(KurrencyLocale.fromLanguageTag("en-AU").getOrThrow())
+        assertEquals(
+            "A$100.00",
+            us.formatMinorUnitsWithOptions(10_000, "AUD", CurrencyFormatOptions.STANDARD).getOrThrow(),
+        )
+        assertEquals(
+            "$100.00",
+            au.formatMinorUnitsWithOptions(10_000, "AUD", CurrencyFormatOptions.STANDARD).getOrThrow(),
+        )
+    }
+
+    @Test
     fun anIsoCodeIsUnaffectedByLocaleAwareSymbolResolution() {
         assertEquals(
             "AUD 100.00",
