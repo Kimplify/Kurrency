@@ -41,45 +41,36 @@ actual class CurrencyFormatterImpl actual constructor(
         }
     }
 
-    actual override fun formatCurrencyStyle(amount: String, currencyCode: String): String {
-        return runCatching {
-            val normalizedAmount = amount.normalizeAmount().trim()
-            if (normalizedAmount.isEmpty()) return amount
-
-            val doubleValue = normalizedAmount.toDouble()
-            require(doubleValue.isFinite()) { "Amount must be a finite number" }
-            webFormatSymbol(normalizedAmount, currencyCode, locale)
-        }.getOrElse { throwable ->
-            KurrencyLog.w { "Formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
-            amount
+    actual override fun formatCurrencyStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.SYMBOL)
         }
-    }
 
-    actual override fun formatIsoCurrencyStyle(amount: String, currencyCode: String): String {
-        return runCatching {
-            val normalizedAmount = amount.normalizeAmount().trim()
-            if (normalizedAmount.isEmpty()) return amount
-
-            val doubleValue = normalizedAmount.toDouble()
-            require(doubleValue.isFinite()) { "Amount must be a finite number" }
-            webFormatIso(normalizedAmount, currencyCode, locale)
-        }.getOrElse { throwable ->
-            KurrencyLog.w { "Formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
-            amount
+    actual override fun formatIsoCurrencyStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.ISO_CODE)
         }
-    }
 
-    actual override fun formatCompactStyle(amount: String, currencyCode: String): String {
-        return runCatching {
-            val normalizedAmount = amount.normalizeAmount().trim()
-            if (normalizedAmount.isEmpty()) return amount
+    actual override fun formatCompactStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.COMPACT)
+        }
 
-            val doubleValue = normalizedAmount.toDouble()
-            require(doubleValue.isFinite()) { "Amount must be a finite number" }
-            webFormatCompact(normalizedAmount, currencyCode, locale)
-        }.getOrElse { throwable ->
-            KurrencyLog.w { "Compact formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
-            amount
+    internal actual fun formatOrThrow(
+        amount: String,
+        currencyCode: String,
+        style: PlatformFormatStyle,
+    ): String {
+        val normalizedAmount = amount.normalizeAmount().trim()
+        if (normalizedAmount.isEmpty()) return amount
+
+        val doubleValue = normalizedAmount.toDouble()
+        require(doubleValue.isFinite()) { "Amount must be a finite number" }
+
+        return when (style) {
+            PlatformFormatStyle.SYMBOL -> webFormatSymbol(normalizedAmount, currencyCode, locale)
+            PlatformFormatStyle.ISO_CODE -> webFormatIso(normalizedAmount, currencyCode, locale)
+            PlatformFormatStyle.COMPACT -> webFormatCompact(normalizedAmount, currencyCode, locale)
         }
     }
 

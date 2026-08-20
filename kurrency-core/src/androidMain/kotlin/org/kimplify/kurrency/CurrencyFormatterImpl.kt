@@ -36,21 +36,32 @@ actual class CurrencyFormatterImpl actual constructor(kurrencyLocale: KurrencyLo
         }
     }
 
-    actual override fun formatCurrencyStyle(
+    actual override fun formatCurrencyStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.SYMBOL)
+        }
+
+    actual override fun formatIsoCurrencyStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.ISO_CODE)
+        }
+
+    actual override fun formatCompactStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.COMPACT)
+        }
+
+    internal actual fun formatOrThrow(
         amount: String,
-        currencyCode: String
-    ): String {
-        return formatCurrencyOrOriginal(amount, currencyCode, useIsoCode = false)
+        currencyCode: String,
+        style: PlatformFormatStyle,
+    ): String = when (style) {
+        PlatformFormatStyle.SYMBOL -> format(amount, currencyCode, useIsoCode = false)
+        PlatformFormatStyle.ISO_CODE -> format(amount, currencyCode, useIsoCode = true)
+        PlatformFormatStyle.COMPACT -> formatCompact(amount, currencyCode)
     }
 
-    actual override fun formatIsoCurrencyStyle(
-        amount: String,
-        currencyCode: String
-    ): String {
-        return formatCurrencyOrOriginal(amount, currencyCode, useIsoCode = true)
-    }
-
-    actual override fun formatCompactStyle(amount: String, currencyCode: String): String {
+    private fun formatCompact(amount: String, currencyCode: String): String {
         return runCatching {
             val currency = Currency.getInstance(currencyCode.uppercase())
             val normalized = amount.normalizeAmount().trim()
@@ -66,12 +77,15 @@ actual class CurrencyFormatterImpl actual constructor(kurrencyLocale: KurrencyLo
             compactFormat.currency = currency
             compactFormat.format(value.toDouble())
         }.getOrElse { throwable ->
-            KurrencyLog.w { "Compact formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
-            formatCurrencyStyle(amount, currencyCode)
+            KurrencyLog.w {
+                "Compact formatting failed for $currencyCode with amount $amount, " +
+                    "falling back to standard: ${throwable.message}"
+            }
+            format(amount, currencyCode, useIsoCode = false)
         }
     }
 
-    private fun formatCurrencyOrOriginal(
+    private fun format(
         amount: String,
         currencyCode: String,
         useIsoCode: Boolean
@@ -93,10 +107,9 @@ actual class CurrencyFormatterImpl actual constructor(kurrencyLocale: KurrencyLo
                 numberFormat.decimalFormatSymbols = symbols
             }
             numberFormat.format(value)
-        }.getOrElse { throwable ->
+        }.onFailure { throwable ->
             KurrencyLog.w { "Formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
-            amount
-        }
+        }.getOrThrow()
     }
 
     actual override fun parseCurrencyAmount(formattedText: String, currencyCode: String): Double? {

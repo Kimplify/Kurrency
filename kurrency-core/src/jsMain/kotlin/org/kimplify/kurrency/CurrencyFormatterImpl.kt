@@ -34,14 +34,13 @@ internal actual fun webCurrencySymbol(cur: String, loc: String?): String {
     val options = js("({ style: 'currency', currency: cur })")
     val formatter = IntlCurrency.NumberFormat(loc, options)
     val parts = formatter.asDynamic().formatToParts(0)
-    var symbol = ""
     val length = parts.length as Int
     for (index in 0 until length) {
         if (parts[index].type == "currency") {
-            symbol = parts[index].value as String
+            return parts[index].value as String
         }
     }
-    return symbol
+    return ""
 }
 
 internal actual fun webFormatIso(amt: String, cur: String, loc: String?): String {
