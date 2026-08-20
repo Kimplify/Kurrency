@@ -5,6 +5,7 @@ import org.kimplify.kurrency.extensions.normalizeAmount
 internal expect fun webGetMaxFractionDigits(cur: String, loc: String?): Int
 internal expect fun webGetResolvedCurrency(cur: String, loc: String?): String
 internal expect fun webFormatSymbol(amt: String, cur: String, loc: String?): String
+internal expect fun webCurrencySymbol(cur: String, loc: String?): String
 internal expect fun webFormatIso(amt: String, cur: String, loc: String?): String
 internal expect fun webIsSupportedCurrency(cur: String): Boolean?
 internal expect fun webCanCreateCurrencyFormatter(cur: String): Boolean
@@ -31,45 +32,45 @@ actual class CurrencyFormatterImpl actual constructor(
         }
     }
 
-    actual override fun formatCurrencyStyle(amount: String, currencyCode: String): String {
+    override fun getCurrencySymbolOrDefault(currencyCode: String, default: String): String {
         return runCatching {
-            val normalizedAmount = amount.normalizeAmount().trim()
-            if (normalizedAmount.isEmpty()) return amount
-
-            val doubleValue = normalizedAmount.toDouble()
-            require(doubleValue.isFinite()) { "Amount must be a finite number" }
-            webFormatSymbol(normalizedAmount, currencyCode, locale)
+            webCurrencySymbol(currencyCode.uppercase(), locale).ifEmpty { default }
         }.getOrElse { throwable ->
-            KurrencyLog.w { "Formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
-            amount
+            KurrencyLog.w { "Failed to get symbol for $currencyCode: ${throwable.message}" }
+            default
         }
     }
 
-    actual override fun formatIsoCurrencyStyle(amount: String, currencyCode: String): String {
-        return runCatching {
-            val normalizedAmount = amount.normalizeAmount().trim()
-            if (normalizedAmount.isEmpty()) return amount
-
-            val doubleValue = normalizedAmount.toDouble()
-            require(doubleValue.isFinite()) { "Amount must be a finite number" }
-            webFormatIso(normalizedAmount, currencyCode, locale)
-        }.getOrElse { throwable ->
-            KurrencyLog.w { "Formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
-            amount
+    actual override fun formatCurrencyStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.SYMBOL)
         }
-    }
 
-    actual override fun formatCompactStyle(amount: String, currencyCode: String): String {
-        return runCatching {
-            val normalizedAmount = amount.normalizeAmount().trim()
-            if (normalizedAmount.isEmpty()) return amount
+    actual override fun formatIsoCurrencyStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.ISO_CODE)
+        }
 
-            val doubleValue = normalizedAmount.toDouble()
-            require(doubleValue.isFinite()) { "Amount must be a finite number" }
-            webFormatCompact(normalizedAmount, currencyCode, locale)
-        }.getOrElse { throwable ->
-            KurrencyLog.w { "Compact formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
-            amount
+    actual override fun formatCompactStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.COMPACT)
+        }
+
+    internal actual fun formatOrThrow(
+        amount: String,
+        currencyCode: String,
+        style: PlatformFormatStyle,
+    ): String {
+        val normalizedAmount = amount.normalizeAmount().trim()
+        if (normalizedAmount.isEmpty()) return amount
+
+        val doubleValue = normalizedAmount.toDouble()
+        require(doubleValue.isFinite()) { "Amount must be a finite number" }
+
+        return when (style) {
+            PlatformFormatStyle.SYMBOL -> webFormatSymbol(normalizedAmount, currencyCode, locale)
+            PlatformFormatStyle.ISO_CODE -> webFormatIso(normalizedAmount, currencyCode, locale)
+            PlatformFormatStyle.COMPACT -> webFormatCompact(normalizedAmount, currencyCode, locale)
         }
     }
 

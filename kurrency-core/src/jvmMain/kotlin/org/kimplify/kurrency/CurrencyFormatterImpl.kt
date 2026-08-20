@@ -23,25 +23,37 @@ actual class CurrencyFormatterImpl actual constructor(
         }
     }
 
-    actual override fun formatCurrencyStyle(
+    override fun getCurrencySymbolOrDefault(currencyCode: String, default: String): String {
+        return runCatching {
+            Currency.getInstance(currencyCode.uppercase()).getSymbol(locale)
+        }.getOrElse { throwable ->
+            KurrencyLog.w { "Failed to get symbol for $currencyCode: ${throwable.message}" }
+            default
+        }
+    }
+
+    actual override fun formatCurrencyStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.SYMBOL)
+        }
+
+    actual override fun formatIsoCurrencyStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.ISO_CODE)
+        }
+
+    actual override fun formatCompactStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.COMPACT)
+        }
+
+    internal actual fun formatOrThrow(
         amount: String,
-        currencyCode: String
-    ): String {
-        return formatCurrencyOrOriginal(amount, currencyCode, useIsoCode = false)
-    }
+        currencyCode: String,
+        style: PlatformFormatStyle,
+    ): String = format(amount, currencyCode, useIsoCode = style == PlatformFormatStyle.ISO_CODE)
 
-    actual override fun formatCompactStyle(amount: String, currencyCode: String): String {
-        return formatCurrencyStyle(amount, currencyCode)
-    }
-
-    actual override fun formatIsoCurrencyStyle(
-        amount: String,
-        currencyCode: String
-    ): String {
-        return formatCurrencyOrOriginal(amount, currencyCode, useIsoCode = true)
-    }
-
-    private fun formatCurrencyOrOriginal(
+    private fun format(
         amount: String,
         currencyCode: String,
         useIsoCode: Boolean
@@ -68,10 +80,9 @@ actual class CurrencyFormatterImpl actual constructor(
                 val numberFormat = createNumberFormat(locale, currencyCode)
                 numberFormat.format(value) ?: ""
             }
-        }.getOrElse { throwable ->
+        }.onFailure { throwable ->
             KurrencyLog.w { "Formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
-            amount
-        }
+        }.getOrThrow()
     }
 
     actual override fun parseCurrencyAmount(formattedText: String, currencyCode: String): Double? {

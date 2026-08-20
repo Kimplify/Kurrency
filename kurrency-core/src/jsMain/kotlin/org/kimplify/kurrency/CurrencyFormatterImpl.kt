@@ -30,6 +30,19 @@ internal actual fun webFormatSymbol(amt: String, cur: String, loc: String?): Str
     return formatter.format(amt.toDouble())
 }
 
+internal actual fun webCurrencySymbol(cur: String, loc: String?): String {
+    val options = js("({ style: 'currency', currency: cur })")
+    val formatter = IntlCurrency.NumberFormat(loc, options)
+    val parts = formatter.asDynamic().formatToParts(0)
+    val length = parts.length as Int
+    for (index in 0 until length) {
+        if (parts[index].type == "currency") {
+            return parts[index].value as String
+        }
+    }
+    return ""
+}
+
 internal actual fun webFormatIso(amt: String, cur: String, loc: String?): String {
     val options = js("({ style: 'currency', currency: cur, currencyDisplay: 'code' })")
     val formatter = IntlCurrency.NumberFormat(loc, options)

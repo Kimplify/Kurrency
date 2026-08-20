@@ -5,6 +5,52 @@ All notable changes to the Kurrency library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-20
+
+A correctness release for the options API. Formatted output changes for three cases
+described below — no source-level breaking change, but golden-file tests will move.
+
+### Added
+- **`CurrencyFormat.getCurrencySymbolOrDefault(currencyCode, default)`** — resolves the
+  locale-aware currency symbol from the platform, falling back to `default`. Ships with a
+  default implementation returning `default`, so existing implementors of the interface
+  keep compiling. (#18)
+
+### Fixed
+- **A leading ISO code or currency name ran into the amount.** `SymbolDisplay.ISO_CODE`
+  rendered `AUD1,234.56` and `SymbolDisplay.NAME` rendered `Australian Dollars1,234.56`.
+  A symbol abuts the amount; a code or a name is a word and is now separated from it.
+  Trailing indicators already had their space and are unchanged.
+- **The options API lost currency disambiguation.** `formatWithOptions` and
+  `formatMinorUnitsWithOptions` read their symbol from `CurrencyMetadata`, which holds one
+  generic symbol per currency, so every dollar currency rendered as a bare `$` and AUD was
+  indistinguishable from USD. The symbol now comes from the platform's locale data —
+  `Currency.getSymbol` (JVM), ICU `SYMBOL_NAME` (Android), `NSNumberFormatter.currencySymbol`
+  (iOS), `Intl.NumberFormat.formatToParts` (JS/Wasm) — and falls back to the metadata symbol
+  where a platform has none. To a US reader AUD is now `A$100` while USD stays `$100`. (#18)
+- **`Kurrency.fromCode` stored the code as given.** `fromCode("aud").code` returned `"aud"`,
+  so a caller comparing it against a constant silently failed. ISO 4217 codes are upper
+  case and the code is now normalised, matching the validation that already accepted either case.
+- **Platform formatting failures were indistinguishable from success.** Every platform
+  implementation ended its formatting path with `getOrElse { amount }`, returning the
+  unformatted input — a plausible-looking number — and because the exception was already
+  caught and discarded, `formatCurrencyStyleResult` could never report a failure. The
+  lenient methods are unchanged and still hand back the original amount; the `Result` API
+  now reports `KurrencyError.FormattingFailure`. (#20)
+- **`LOCALE_DEFAULT` could silently mean English placement.** `detectSymbolPosition` derived
+  the placement from a swallowing platform call, so a platform that could not format returned
+  the sample unchanged, no symbol was found, and every locale fell back to `LEADING` — a German
+  locale rendering `$1.234,56` with nothing reported. Failures are now surfaced and each
+  fallback logs why it was taken. (#21)
+
+### Internal
+- The seven duplicated lenient fallbacks across the platform implementations collapse into a
+  single `formatLeniently` helper, and `CurrencyFormatterImpl` gained an internal
+  `formatOrThrow` used by the `Result` paths.
+- The locale-aware symbol and its placement are both fixed for a formatter's lifetime, so
+  each is resolved once per currency and cached in a `@Volatile` copy-on-write map instead of
+  building a platform formatter on every call. (#21)
+
 ## [0.4.0] - 2026-06-05
 
 A feature and correctness release. **Contains one breaking change** — the Compose
@@ -204,12 +250,14 @@ No breaking changes. This release is fully backward compatible.
 
 | Version | Release Date | Support Status |
 |---------|--------------|----------------|
-| 0.2.3   | 2025-01-06   | ✅ Current     |
-| 0.2.2   | 2024         | ⚠️ Deprecated  |
-| 0.2.1   | 2024         | ⚠️ Deprecated  |
+| 0.5.0   | 2026-08-20   | ✅ Current     |
+| 0.4.0   | 2026-06-05   | ⚠️ Superseded  |
+| 0.3.1   | 2026-04-07   | ⚠️ Deprecated  |
+| 0.2.x   | 2024–2025    | ⚠️ Deprecated  |
 
 ---
 
+[0.5.0]: https://github.com/Kimplify/Kurrency/compare/v0.4.0...v0.5.0
 [0.3.1]: https://github.com/Kimplify/Kurrency/compare/v0.3.0...v0.3.1
 [0.2.3]: https://github.com/Kimplify/Kurrency/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/Kimplify/Kurrency/compare/v0.2.1...v0.2.2

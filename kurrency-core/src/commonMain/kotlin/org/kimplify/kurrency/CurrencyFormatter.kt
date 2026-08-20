@@ -1,5 +1,6 @@
 package org.kimplify.kurrency
 
+import kotlin.concurrent.Volatile
 import org.kimplify.kurrency.extensions.normalizeAmount
 
 expect class CurrencyFormatterImpl(kurrencyLocale: KurrencyLocale = KurrencyLocale.systemLocale()) : CurrencyFormat {
@@ -8,6 +9,14 @@ expect class CurrencyFormatterImpl(kurrencyLocale: KurrencyLocale = KurrencyLoca
     override fun formatIsoCurrencyStyle(amount: String, currencyCode: String): String
     override fun formatCompactStyle(amount: String, currencyCode: String): String
     override fun parseCurrencyAmount(formattedText: String, currencyCode: String): Double?
+
+    /**
+     * Formats through the platform and lets the failure out, unlike the [CurrencyFormat] methods
+     * above, which document a lenient fallback and keep it. [CurrencyFormatter] uses this for the
+     * paths that return a `Result`, so a formatting failure reaches a caller who asks for one
+     * instead of arriving as the unformatted input.
+     */
+    internal fun formatOrThrow(amount: String, currencyCode: String, style: PlatformFormatStyle): String
 }
 
 expect fun isValidCurrency(currencyCode: String): Boolean
@@ -51,10 +60,16 @@ expect fun isValidCurrency(currencyCode: String): Boolean
  */
 class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.systemLocale()) : CurrencyFormat {
 
-    private val impl: CurrencyFormat by lazy {
+    private val impl: CurrencyFormatterImpl by lazy {
         KurrencyLog.d { "Initializing CurrencyFormatter with locale: ${locale.languageTag}" }
         CurrencyFormatterImpl(locale)
     }
+
+    @Volatile
+    private var detectedPositions: Map<String, SymbolPosition> = emptyMap()
+
+    @Volatile
+    private var resolvedSymbols: Map<String, String> = emptyMap()
 
     override fun getFractionDigitsOrDefault(currencyCode: String, default: Int): Int =
         impl.getFractionDigitsOrDefault(currencyCode, default)
@@ -70,7 +85,7 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
 
     fun formatCompactStyleResult(amount: String, currencyCode: String): Result<String> {
         return formatWithValidation(amount, currencyCode) {
-            Result.success(impl.formatCompactStyle(it, currencyCode))
+            Result.success(impl.formatOrThrow(it, currencyCode, PlatformFormatStyle.COMPACT))
         }
     }
 
@@ -286,7 +301,7 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
      */
     fun formatCurrencyStyleResult(amount: String, currencyCode: String): Result<String> {
         return formatWithValidation(amount, currencyCode) {
-            Result.success(impl.formatCurrencyStyle(it, currencyCode))
+            Result.success(impl.formatOrThrow(it, currencyCode, PlatformFormatStyle.SYMBOL))
         }
     }
 
@@ -299,7 +314,7 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
      */
     fun formatIsoCurrencyStyleResult(amount: String, currencyCode: String): Result<String> {
         return formatWithValidation(amount, currencyCode) {
-            Result.success(impl.formatIsoCurrencyStyle(it, currencyCode))
+            Result.success(impl.formatOrThrow(it, currencyCode, PlatformFormatStyle.ISO_CODE))
         }
     }
 
@@ -342,7 +357,7 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
                 }
 
                 val metadata = CurrencyMetadata.parse(currencyCode).getOrNull()
-                val symbol = metadata?.symbol ?: ""
+                val symbol = resolveSymbol(currencyCode, metadata?.symbol ?: "")
                 val isNegative = Decimals.isNegative(normalizedAmount)
                 val absAmount = Decimals.abs(normalizedAmount)
 
@@ -367,12 +382,14 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
                     SymbolPosition.TRAILING -> SymbolPosition.TRAILING
                 }
 
-                // Assemble result with currency indicator
+                // Assemble result with currency indicator. A symbol abuts the amount; an ISO
+                // code or a currency name is a word and needs separating from it.
+                val separator = if (options.symbolDisplay == SymbolDisplay.SYMBOL) "" else " "
                 var result = when {
                     currencyIndicator.isEmpty() -> formattedAbsAmount
-                    effectivePosition == SymbolPosition.LEADING || effectivePosition == SymbolPosition.LOCALE_DEFAULT ->
-                        "$currencyIndicator$formattedAbsAmount"
-                    else -> "$formattedAbsAmount $currencyIndicator"
+                    effectivePosition == SymbolPosition.TRAILING ->
+                        "$formattedAbsAmount $currencyIndicator"
+                    else -> "$currencyIndicator$separator$formattedAbsAmount"
                 }
 
                 // Handle negative style
@@ -433,25 +450,52 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
     }
 
     /**
-     * Detects whether the locale places the currency symbol before or after the number
-     * by formatting a sample amount and checking the position.
+     * Detects whether the locale places the currency symbol before or after the number by
+     * formatting a sample amount once per currency and caching the answer: the locale is fixed for
+     * the lifetime of this formatter, so the placement cannot change under it.
      */
+    /**
+     * The platform knows the locale-aware symbol ("A$" for AUD to a US reader); [CurrencyMetadata]
+     * holds one generic symbol per currency and is the fallback. Resolved once per currency for the
+     * same reason the placement is: the locale cannot change under this formatter, and asking the
+     * platform means building a platform formatter on every call.
+     */
+    private fun resolveSymbol(currencyCode: String, fallback: String): String {
+        resolvedSymbols[currencyCode]?.let { return it }
+        val resolved = impl.getCurrencySymbolOrDefault(currencyCode, fallback)
+        resolvedSymbols = resolvedSymbols + (currencyCode to resolved)
+        return resolved
+    }
+
     private fun detectSymbolPosition(currencyCode: String, symbol: String): SymbolPosition {
         if (symbol.isEmpty()) return SymbolPosition.LEADING
+        detectedPositions[currencyCode]?.let { return it }
+        val detected = resolveSymbolPosition(currencyCode, symbol)
+        detectedPositions = detectedPositions + (currencyCode to detected)
+        return detected
+    }
 
-        // Format a sample to detect position
-        val sample = impl.formatCurrencyStyle("1", currencyCode)
+    private fun resolveSymbolPosition(currencyCode: String, symbol: String): SymbolPosition {
+        val sample = runCatching { impl.formatOrThrow("1", currencyCode, PlatformFormatStyle.SYMBOL) }
+            .getOrElse { throwable ->
+                KurrencyLog.w {
+                    "Symbol position for $currencyCode falls back to LEADING: " +
+                        "platform formatting failed: ${throwable.message}"
+                }
+                return SymbolPosition.LEADING
+            }
 
-        // Check if symbol appears before or after the digit
         val symbolIndex = sample.indexOf(symbol)
         val digitIndex = sample.indexOfFirst { it.isDigit() }
-
-        return when {
-            symbolIndex < 0 -> SymbolPosition.LEADING // fallback
-            digitIndex < 0 -> SymbolPosition.LEADING // fallback
-            symbolIndex < digitIndex -> SymbolPosition.LEADING
-            else -> SymbolPosition.TRAILING
+        if (symbolIndex < 0 || digitIndex < 0) {
+            KurrencyLog.w {
+                "Symbol position for $currencyCode falls back to LEADING: " +
+                    "no $symbol and no digit in \"$sample\""
+            }
+            return SymbolPosition.LEADING
         }
+
+        return if (symbolIndex < digitIndex) SymbolPosition.LEADING else SymbolPosition.TRAILING
     }
 
     private fun formatWithValidation(
@@ -472,10 +516,11 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
         }
 
         KurrencyLog.d { "Formatting: amount=$amount, currency=$currencyCode" }
-        return format(amount)
-            .onFailure { throwable ->
+        return runCatching { format(amount).getOrThrow() }
+            .recoverCatching { throwable ->
                 val error = KurrencyError.FormattingFailure(currencyCode, amount, throwable)
                 KurrencyLog.e(throwable) { error.errorMessage }
+                throw error
             }
     }
 

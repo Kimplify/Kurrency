@@ -19,6 +19,20 @@ actual class CurrencyFormatterImpl actual constructor(private val kurrencyLocale
 
     private val formattingLocale: NSLocale = kurrencyLocale.nsLocale
 
+    override fun getCurrencySymbolOrDefault(currencyCode: String, default: String): String {
+        return runCatching {
+            val formatter = NSNumberFormatter().apply {
+                this.locale = formattingLocale
+                this.currencyCode = currencyCode.uppercase()
+                this.numberStyle = NSNumberFormatterCurrencyStyle
+            }
+            formatter.currencySymbol ?: default
+        }.getOrElse { throwable ->
+            KurrencyLog.w { "Failed to get symbol for $currencyCode: ${throwable.message}" }
+            default
+        }
+    }
+
     actual override fun getFractionDigitsOrDefault(currencyCode: String, default: Int): Int {
         return runCatching {
             val formatter = NSNumberFormatter().apply {
@@ -33,14 +47,33 @@ actual class CurrencyFormatterImpl actual constructor(private val kurrencyLocale
         }
     }
 
-    actual override fun formatCurrencyStyle(
+    actual override fun formatCurrencyStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.SYMBOL)
+        }
+
+    actual override fun formatIsoCurrencyStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.ISO_CODE)
+        }
+
+    actual override fun formatCompactStyle(amount: String, currencyCode: String): String =
+        formatLeniently(amount, currencyCode) {
+            formatOrThrow(amount, currencyCode, PlatformFormatStyle.COMPACT)
+        }
+
+    internal actual fun formatOrThrow(
         amount: String,
-        currencyCode: String
-    ): String {
-        return formatCurrencyOrOriginal(amount, currencyCode, NSNumberFormatterCurrencyStyle)
+        currencyCode: String,
+        style: PlatformFormatStyle,
+    ): String = when (style) {
+        PlatformFormatStyle.SYMBOL -> format(amount, currencyCode, NSNumberFormatterCurrencyStyle)
+        PlatformFormatStyle.ISO_CODE ->
+            format(amount, currencyCode, NSNumberFormatterCurrencyISOCodeStyle)
+        PlatformFormatStyle.COMPACT -> formatCompact(amount, currencyCode)
     }
 
-    actual override fun formatCompactStyle(amount: String, currencyCode: String): String {
+    private fun formatCompact(amount: String, currencyCode: String): String {
         return runCatching {
             val normalizedAmount = amount.normalizeAmount().trim()
             if (normalizedAmount.isEmpty()) return amount
@@ -67,20 +100,12 @@ actual class CurrencyFormatterImpl actual constructor(private val kurrencyLocale
             val lastDigitIndex = formatted.indexOfLast { it.isDigit() }
             if (lastDigitIndex < 0) return "$formatted$suffix"
             formatted.substring(0, lastDigitIndex + 1) + suffix + formatted.substring(lastDigitIndex + 1)
-        }.getOrElse { throwable ->
+        }.onFailure { throwable ->
             KurrencyLog.w { "Compact formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
-            amount
-        }
+        }.getOrThrow()
     }
 
-    actual override fun formatIsoCurrencyStyle(
-        amount: String,
-        currencyCode: String
-    ): String {
-        return formatCurrencyOrOriginal(amount, currencyCode, NSNumberFormatterCurrencyISOCodeStyle)
-    }
-
-    private fun formatCurrencyOrOriginal(
+    private fun format(
         amount: String,
         currencyCode: String,
         style: NSNumberFormatterStyle
@@ -95,10 +120,9 @@ actual class CurrencyFormatterImpl actual constructor(private val kurrencyLocale
             val value = NSNumber(doubleValue)
             val numberFormatter = createNumberFormatter(currencyCode, style)
             numberFormatter.stringFromNumber(value) ?: ""
-        }.getOrElse { throwable ->
+        }.onFailure { throwable ->
             KurrencyLog.w { "Formatting failed for $currencyCode with amount $amount: ${throwable.message}" }
-            amount
-        }
+        }.getOrThrow()
     }
 
     actual override fun parseCurrencyAmount(formattedText: String, currencyCode: String): Double? {
