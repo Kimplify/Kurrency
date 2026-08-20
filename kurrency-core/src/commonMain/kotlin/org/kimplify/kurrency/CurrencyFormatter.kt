@@ -367,12 +367,14 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
                     SymbolPosition.TRAILING -> SymbolPosition.TRAILING
                 }
 
-                // Assemble result with currency indicator
+                // Assemble result with currency indicator. A symbol abuts the amount; an ISO
+                // code or a currency name is a word and needs separating from it.
+                val separator = if (options.symbolDisplay == SymbolDisplay.SYMBOL) "" else " "
                 var result = when {
                     currencyIndicator.isEmpty() -> formattedAbsAmount
-                    effectivePosition == SymbolPosition.LEADING || effectivePosition == SymbolPosition.LOCALE_DEFAULT ->
-                        "$currencyIndicator$formattedAbsAmount"
-                    else -> "$formattedAbsAmount $currencyIndicator"
+                    effectivePosition == SymbolPosition.TRAILING ->
+                        "$formattedAbsAmount $currencyIndicator"
+                    else -> "$currencyIndicator$separator$formattedAbsAmount"
                 }
 
                 // Handle negative style

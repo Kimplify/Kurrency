@@ -17,9 +17,14 @@ class Kurrency private constructor(val code: String) {
         get() = CurrencyFormatter.getFractionDigitsOrDefault(code)
 
     companion object Companion {
+        /**
+         * ISO 4217 codes are upper case, so the code is normalised before it is stored. Without
+         * this, `fromCode("aud").code` returns `"aud"` and a caller comparing it against a
+         * constant silently fails.
+         */
         fun fromCode(code: String): Result<Kurrency> {
             return if (isValid(code)) {
-                Result.success(Kurrency(code))
+                Result.success(Kurrency(code.uppercase()))
             } else {
                 Result.failure(KurrencyError.InvalidCurrencyCode(code))
             }
