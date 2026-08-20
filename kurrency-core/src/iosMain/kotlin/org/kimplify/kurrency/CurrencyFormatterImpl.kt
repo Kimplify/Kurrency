@@ -19,6 +19,20 @@ actual class CurrencyFormatterImpl actual constructor(private val kurrencyLocale
 
     private val formattingLocale: NSLocale = kurrencyLocale.nsLocale
 
+    override fun getCurrencySymbolOrDefault(currencyCode: String, default: String): String {
+        return runCatching {
+            val formatter = NSNumberFormatter().apply {
+                this.locale = formattingLocale
+                this.currencyCode = currencyCode.uppercase()
+                this.numberStyle = NSNumberFormatterCurrencyStyle
+            }
+            formatter.currencySymbol ?: default
+        }.getOrElse { throwable ->
+            KurrencyLog.w { "Failed to get symbol for $currencyCode: ${throwable.message}" }
+            default
+        }
+    }
+
     actual override fun getFractionDigitsOrDefault(currencyCode: String, default: Int): Int {
         return runCatching {
             val formatter = NSNumberFormatter().apply {

@@ -12,6 +12,20 @@ interface CurrencyFormat {
     fun getFractionDigitsOrDefault(currencyCode: String, default: Int = 2): Int
 
     /**
+     * Gets the locale-aware currency symbol for a currency code, returning [default] on error or
+     * where the platform has no locale-specific data.
+     *
+     * The symbol depends on the reader's locale, not only on the currency: `AUD` is `"A$"` to a
+     * US reader and `"$"` to an Australian one, which is what keeps currencies sharing the `$`
+     * glyph apart. A static table cannot express that, so this delegates to the platform.
+     *
+     * @param currencyCode The ISO 4217 currency code (e.g., "USD", "AUD")
+     * @param default The symbol to fall back to when the platform cannot supply one
+     * @return The locale-aware symbol, or [default]
+     */
+    fun getCurrencySymbolOrDefault(currencyCode: String, default: String): String = default
+
+    /**
      * Formats an amount in currency style, returning original value on error.
      * This is the recommended method for UI display.
      *

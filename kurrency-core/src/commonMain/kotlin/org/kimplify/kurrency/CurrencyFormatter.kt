@@ -342,7 +342,9 @@ class CurrencyFormatter(private val locale: KurrencyLocale = KurrencyLocale.syst
                 }
 
                 val metadata = CurrencyMetadata.parse(currencyCode).getOrNull()
-                val symbol = metadata?.symbol ?: ""
+                // The platform knows the locale-aware symbol ("A$" for AUD to a US reader);
+                // CurrencyMetadata holds one generic symbol per currency and is the fallback.
+                val symbol = impl.getCurrencySymbolOrDefault(currencyCode, metadata?.symbol ?: "")
                 val isNegative = Decimals.isNegative(normalizedAmount)
                 val absAmount = Decimals.abs(normalizedAmount)
 

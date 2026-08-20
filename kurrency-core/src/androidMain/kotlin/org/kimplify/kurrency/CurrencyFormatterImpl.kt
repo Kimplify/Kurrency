@@ -23,6 +23,19 @@ actual class CurrencyFormatterImpl actual constructor(kurrencyLocale: KurrencyLo
         }
     }
 
+    override fun getCurrencySymbolOrDefault(currencyCode: String, default: String): String {
+        return runCatching {
+            Currency.getInstance(currencyCode.uppercase()).getName(
+                platformLocale,
+                Currency.SYMBOL_NAME,
+                booleanArrayOf(false),
+            )
+        }.getOrElse { throwable ->
+            KurrencyLog.w { "Failed to get symbol for $currencyCode: ${throwable.message}" }
+            default
+        }
+    }
+
     actual override fun formatCurrencyStyle(
         amount: String,
         currencyCode: String

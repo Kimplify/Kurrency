@@ -5,6 +5,7 @@ import org.kimplify.kurrency.extensions.normalizeAmount
 internal expect fun webGetMaxFractionDigits(cur: String, loc: String?): Int
 internal expect fun webGetResolvedCurrency(cur: String, loc: String?): String
 internal expect fun webFormatSymbol(amt: String, cur: String, loc: String?): String
+internal expect fun webCurrencySymbol(cur: String, loc: String?): String
 internal expect fun webFormatIso(amt: String, cur: String, loc: String?): String
 internal expect fun webIsSupportedCurrency(cur: String): Boolean?
 internal expect fun webCanCreateCurrencyFormatter(cur: String): Boolean
@@ -27,6 +28,15 @@ actual class CurrencyFormatterImpl actual constructor(
             if (fractionDigits >= 0) fractionDigits else default
         }.getOrElse { throwable ->
             KurrencyLog.w { "Failed to get fraction digits for $currencyCode: ${throwable.message}" }
+            default
+        }
+    }
+
+    override fun getCurrencySymbolOrDefault(currencyCode: String, default: String): String {
+        return runCatching {
+            webCurrencySymbol(currencyCode.uppercase(), locale).ifEmpty { default }
+        }.getOrElse { throwable ->
+            KurrencyLog.w { "Failed to get symbol for $currencyCode: ${throwable.message}" }
             default
         }
     }

@@ -23,6 +23,10 @@ private external fun wasmCanCreateCurrencyFormatter(cur: String): Boolean
 internal actual fun webGetMaxFractionDigits(cur: String, loc: String?): Int = wasmGetMaxFractionDigits(cur, loc)
 internal actual fun webGetResolvedCurrency(cur: String, loc: String?): String = wasmGetResolvedCurrency(cur, loc)
 internal actual fun webFormatSymbol(amt: String, cur: String, loc: String?): String = wasmFormatSymbol(amt, cur, loc)
+internal actual fun webCurrencySymbol(cur: String, loc: String?): String = wasmCurrencySymbol(cur, loc)
+
+@JsFun("function(cur, loc) { var p = new Intl.NumberFormat(loc || undefined, {style:'currency', currency:cur}).formatToParts(0); for (var i = 0; i < p.length; i++) { if (p[i].type === 'currency') return p[i].value; } return ''; }")
+private external fun wasmCurrencySymbol(cur: String, loc: String?): String
 internal actual fun webFormatIso(amt: String, cur: String, loc: String?): String = wasmFormatIso(amt, cur, loc)
 internal actual fun webIsSupportedCurrency(cur: String): Boolean? = wasmIsSupportedCurrency(cur)
 internal actual fun webCanCreateCurrencyFormatter(cur: String): Boolean = wasmCanCreateCurrencyFormatter(cur)
