@@ -1,0 +1,84 @@
+name: Android Sample
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-sample:
+    name: Build APK and test Android sample
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install compile SDK
+        run: sdkmanager "platforms;android-37"
+
+      - name: Build sample and instrumentation APKs
+        run: ./gradlew :sample:androidApp:assembleDebug :sample:androidApp:assembleDebugAndroidTest --stacktrace
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Prepare emulator validation
+        run: |
+          cat > "$RUNNER_TEMP/run-android-sample.sh" <<'SCRIPT'
+          set -euo pipefail
+          mkdir -p build/android-validation
+          adb install -r sample/androidApp/build/outputs/apk/debug/androidApp-debug.apk
+          adb shell am start -W -n org.kimplify.sample/.MainActivity
+          adb exec-out screencap -p > build/android-validation/launch.png
+          test_exit_code=0
+          ./gradlew :sample:androidApp:connectedDebugAndroidTest -Pandroid.enableAdditionalTestOutput=true --stacktrace || test_exit_code=$?
+          adb logcat -d > build/android-validation/logcat.txt || true
+          if [ "$test_exit_code" -eq 0 ]; then
+            find sample/androidApp/build/outputs/connected_android_test_additional_output -type f -name '*.png' -print -quit | grep -q .
+          fi
+          exit "$test_exit_code"
+          SCRIPT
+
+      - name: Install, launch, and test on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7_pro
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -prop persist.sys.language=en -prop persist.sys.country=US
+          script: bash "$RUNNER_TEMP/run-android-sample.sh"
+
+      - name: Upload APKs, Android test results, and screenshots
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: android-sample-validation
+          path: |
+            sample/androidApp/build/outputs/apk/debug/*.apk
+            sample/androidApp/build/outputs/apk/androidTest/debug/*.apk
+            sample/androidApp/build/reports/androidTests/connected/
+            sample/androidApp/build/outputs/androidTest-results/connected/
+            sample/androidApp/build/outputs/connected_android_test_additional_output/
+            build/android-validation/
+          retention-days: 30
