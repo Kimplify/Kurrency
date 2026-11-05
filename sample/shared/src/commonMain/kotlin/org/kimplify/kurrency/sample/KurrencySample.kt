@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -356,6 +357,7 @@ private fun CurrencyInputExample() {
                     color = MaterialTheme.colorScheme.onSurface
                 ),
                 modifier = Modifier
+                    .testTag("currencyInput")
                     .fillMaxWidth()
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
                     .padding(16.dp)
@@ -363,6 +365,7 @@ private fun CurrencyInputExample() {
 
             Text(
                 text = "Stored minor units: ${state.text}",
+                modifier = Modifier.testTag("currencyRawAmount"),
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
