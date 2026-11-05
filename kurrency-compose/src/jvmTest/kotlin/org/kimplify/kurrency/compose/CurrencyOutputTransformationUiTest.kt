@@ -176,7 +176,7 @@ class CurrencyOutputTransformationUiTest {
     }
 
     @Test
-    fun deleteBeforeDisplayedDecimal_deletesNextRawDigit() = runComposeUiTest {
+    fun deleteAfterCrossingDisplayedDecimal_deletesNextRawDigit() = runComposeUiTest {
         val state = TextFieldState("123456")
 
         setContent {
@@ -189,12 +189,38 @@ class CurrencyOutputTransformationUiTest {
 
         val field = onNodeWithTag("amount")
         field.performTextInputSelection(TextRange(6), relativeToOriginalText = false)
-        field.performKeyInput { pressKey(Key.Delete) }
+        field.performKeyInput {
+            pressKey(Key.DirectionRight)
+            pressKey(Key.Delete)
+        }
 
         field.assertTextEquals("$123.46")
         runOnIdle {
             assertEquals("12346", state.text.toString())
             assertEquals(TextRange(4), state.selection)
+        }
+    }
+
+    @Test
+    fun deleteAtDisplayedDigitBoundary_deletesNextRawDigit() = runComposeUiTest {
+        val state = TextFieldState("123456")
+
+        setContent {
+            BasicTextField(
+                state = state,
+                modifier = Modifier.testTag("amount"),
+                outputTransformation = rememberCurrencyOutputTransformation("USD", KurrencyLocale.US),
+            )
+        }
+
+        val field = onNodeWithTag("amount")
+        field.performTextInputSelection(TextRange(5), relativeToOriginalText = false)
+        field.performKeyInput { pressKey(Key.Delete) }
+
+        field.assertTextEquals("$123.56")
+        runOnIdle {
+            assertEquals("12356", state.text.toString())
+            assertEquals(TextRange(3), state.selection)
         }
     }
 
