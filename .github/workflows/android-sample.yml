@@ -32,7 +32,7 @@ jobs:
           packages: platform-tools
 
       - name: Install compile SDK
-        run: sdkmanager "platforms;android-37"
+        run: sdkmanager "platforms;android-37.0"
 
       - name: Build sample and instrumentation APKs
         run: ./gradlew :sample:androidApp:assembleDebug :sample:androidApp:assembleDebugAndroidTest --stacktrace
