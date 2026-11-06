@@ -31,16 +31,16 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
 
       - name: Run JVM tests
-        run: ./gradlew :kurrency-core:jvmTest
+        run: ./gradlew :kurrency-core:jvmTest :kurrency-compose:jvmTest
 
       - name: Run iOS tests
-        run: ./gradlew :kurrency-core:iosSimulatorArm64Test
+        run: ./gradlew :kurrency-core:iosSimulatorArm64Test :kurrency-compose:iosSimulatorArm64Test
 
       - name: Run JS tests
-        run: ./gradlew :kurrency-core:jsTest
+        run: ./gradlew :kurrency-core:jsTest :kurrency-compose:jsTest
 
       - name: Run WasmJs tests
-        run: ./gradlew :kurrency-core:wasmJsTest
+        run: ./gradlew :kurrency-core:wasmJsTest :kurrency-compose:wasmJsTest
 
       - name: Upload test reports
         if: always()
@@ -50,6 +50,8 @@ jobs:
           path: |
             kurrency-core/build/reports/tests/
             kurrency-core/build/test-results/
+            kurrency-compose/build/reports/tests/
+            kurrency-compose/build/test-results/
           retention-days: 30
 
   build:

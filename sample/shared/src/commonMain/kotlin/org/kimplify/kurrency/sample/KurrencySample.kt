@@ -2,6 +2,7 @@
 
 package org.kimplify.kurrency.sample
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -33,13 +39,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.kimplify.kurrency.CurrencyStyle
 import org.kimplify.kurrency.ExperimentalKurrency
 import org.kimplify.kurrency.Kurrency
 import org.kimplify.kurrency.KurrencyLocale
 import org.kimplify.kurrency.compose.current
+import org.kimplify.kurrency.compose.rememberCurrencyOutputTransformation
 import org.kimplify.kurrency.compose.rememberCurrencyState
 
 @Composable
@@ -62,6 +71,7 @@ fun KurrencySampleApp() {
                     LocaleSeparatorsExample()
                     CurrencyStateExample()
                     MultiCurrencyExample()
+                    CurrencyInputExample()
                     InteractiveCurrencyConverter()
                     CurrencyListSection()
                 }
@@ -319,6 +329,50 @@ private fun MultiCurrencyExample() {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CurrencyInputExample() {
+    SampleCard(title = "Currency Input") {
+        val state = rememberTextFieldState(initialText = "1234")
+        val outputTransformation = rememberCurrencyOutputTransformation("USD")
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "Amount (USD)",
+                style = MaterialTheme.typography.labelLarge
+            )
+
+            BasicTextField(
+                state = state,
+                outputTransformation = outputTransformation,
+                inputTransformation = InputTransformation {
+                    if (asCharSequence().any { it !in '0'..'9' }) revertAllChanges()
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                lineLimits = TextFieldLineLimits.SingleLine,
+                textStyle = MaterialTheme.typography.titleLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier
+                    .testTag("currencyInput")
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
+                    .padding(16.dp)
+            )
+
+            Text(
+                text = "Stored minor units: ${state.text}",
+                modifier = Modifier.testTag("currencyRawAmount"),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "Type USD cents. Clearing keeps the stored text empty and displays zero.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

@@ -33,7 +33,6 @@ kotlin {
 
     js(IR) {
         browser()
-        nodejs()
     }
 
     listOf(

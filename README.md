@@ -164,6 +164,58 @@ val system = KurrencyLocale.systemLocale()
 
 Add `kurrency-compose` for Jetpack Compose Multiplatform support.
 
+### Currency input with state-based text fields
+
+Use `rememberCurrencyOutputTransformation` with Foundation's state-based `BasicTextField`.
+The state holds raw minor-unit digits: `"1234"` displays as `$12.34` for USD in the US locale.
+Compose handles cursor and selection offsets for the formatted output.
+
+```kotlin
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.input.KeyboardType
+import org.kimplify.kurrency.KurrencyLocale
+import org.kimplify.kurrency.compose.rememberCurrencyOutputTransformation
+
+@Composable
+fun CurrencyInput() {
+    val state = rememberTextFieldState(initialText = "1234")
+    val transformation = rememberCurrencyOutputTransformation(
+        currencyCode = "USD",
+        locale = KurrencyLocale.US
+    )
+
+    BasicTextField(
+        state = state,
+        outputTransformation = transformation,
+        inputTransformation = InputTransformation {
+            if (asCharSequence().any { it !in '0'..'9' }) revertAllChanges()
+        },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        lineLimits = TextFieldLineLimits.SingleLine
+    )
+}
+```
+
+The optional input filter rejects an entire edit containing anything outside ASCII `0`–`9`;
+the number keyboard alone does not validate input. Store digits without signs, decimal
+separators, or currency symbols. Output formatting only changes the display, leaving
+`state.text` untouched. Empty text displays formatted zero while remaining empty in the state.
+
+The default input scale comes from the currency: `"1234"` means USD 12.34, JPY 1234, or
+BHD 1.234. Override `fractionDigits` to change that scale; it does not set display precision.
+The platform formatter still uses the currency's normal fraction digits. If formatting fails,
+including for an invalid currency code, the display falls back to the synthesized decimal amount.
+
+Omit `locale` to follow the current Compose locale. Outside composition, construct
+`CurrencyOutputTransformation` directly; its default is the system locale. For
+`value`/`onValueChange` text fields, `CurrencyVisualTransformation` and
+`rememberCurrencyVisualTransformation` remain available.
+
 ### rememberCurrencyFormatter
 
 The formatter is recreated when the locale changes (key-based recomposition). Formatting is cheap, so call it directly during composition rather than caching it.
@@ -290,6 +342,18 @@ val groupingSeparator: Char
 ### Compose extensions (`kurrency-compose`)
 
 ```kotlin
+class CurrencyOutputTransformation(
+    currencyCode: String,
+    locale: KurrencyLocale = KurrencyLocale.systemLocale(),
+    fractionDigits: Int = CurrencyFormatter.getFractionDigitsOrDefault(currencyCode).coerceAtLeast(0)
+) : OutputTransformation
+
+@Composable fun rememberCurrencyOutputTransformation(
+    currencyCode: String,
+    locale: KurrencyLocale = KurrencyLocale.current(),
+    fractionDigits: Int = CurrencyFormatter.getFractionDigitsOrDefault(currencyCode).coerceAtLeast(0)
+): CurrencyOutputTransformation
+
 @Composable fun rememberCurrencyFormatter(locale: KurrencyLocale = KurrencyLocale.current()): CurrencyFormat
 @Composable fun rememberSystemCurrencyFormatter(): CurrencyFormat
 
